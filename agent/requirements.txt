@@ -1,0 +1,10 @@
+# Core runtime
+requests
+paho-mqtt
+
+# Optional: scapy for PCAP parsing & real packet ingestion
+# Install only if you plan to parse pcaps locally: pip install scapy
+# scapy
+
+# (If you later decide to use the exact CICFlowMeter Java tool or a Python port,
+# we'll add those dependencies here.)

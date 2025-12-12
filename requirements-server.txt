@@ -1,0 +1,20 @@
+fastapi
+uvicorn[standard]
+
+numpy
+pandas
+joblib
+scikit-learn
+requests
+python-multipart
+aiohttp
+
+# dashboards
+streamlit
+plotly
+
+# supervised model
+xgboost
+
+# optional (only install if using autoencoder):
+tensorflow
