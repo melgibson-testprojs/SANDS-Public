@@ -179,30 +179,44 @@ def extract_cic_features(flow: dict):
     init_wnd_fwd = _init_win_bytes(fwd_pkts_list)
     init_wnd_bwd = _init_win_bytes(bwd_pkts_list)
 
-    def _active_idle_stats(pkts_list, active_threshold=1.0):
-        if not pkts_list:
+    def _active_idle_stats(timestamps, active_threshold=1.0):
+        """
+        timestamps: list of packet timestamps (floats)
+        """
+        if not timestamps or len(timestamps) < 2:
             return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        ts_sorted = sorted([p.get("ts", 0.0) for p in pkts_list])
+
+        ts_sorted = sorted(timestamps)
         gaps = [t2 - t1 for t1, t2 in zip(ts_sorted[:-1], ts_sorted[1:])]
+
         active_periods = []
         idle_periods = []
+
         seg_start = ts_sorted[0]
         last = ts_sorted[0]
-        for g, t in zip(gaps, ts_sorted[1:]):
-            if g > active_threshold:
+
+        for gap, t in zip(gaps, ts_sorted[1:]):
+            if gap > active_threshold:
                 active_periods.append(last - seg_start)
-                idle_periods.append(g)
+                idle_periods.append(gap)
                 seg_start = t
             last = t
-        active_periods.append(last - seg_start)
-        if not active_periods:
-            active_periods = [0.0]
-        if not idle_periods:
-            idle_periods = [0.0]
-        return (_safe_mean(active_periods), _safe_std(active_periods), max(active_periods), min(active_periods),
-                _safe_mean(idle_periods), _safe_std(idle_periods), max(idle_periods), min(idle_periods))
 
-    active_mean, active_std, active_max, active_min, idle_mean, idle_std, idle_max, idle_min = _active_idle_stats(times_sorted := times_sorted if (times_sorted := sorted(times)) else [])
+        active_periods.append(last - seg_start)
+
+        return (
+            _safe_mean(active_periods),
+            _safe_std(active_periods),
+            max(active_periods),
+            min(active_periods),
+            _safe_mean(idle_periods),
+            _safe_std(idle_periods),
+            max(idle_periods) if idle_periods else 0.0,
+            min(idle_periods) if idle_periods else 0.0,
+        )
+
+    active_mean, active_std, active_max, active_min, idle_mean, idle_std, idle_max, idle_min = _active_idle_stats(times)
+
 
     act_data_pkt_fwd = sum(1 for p in fwd_pkts_list if int(p.get("length", 0)) > 0)
     min_seg_size_fwd = min((int(p.get("length", 0)) for p in fwd_pkts_list), default=0)
