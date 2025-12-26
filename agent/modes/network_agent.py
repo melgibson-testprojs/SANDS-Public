@@ -1,12 +1,15 @@
 import time
 import random
+import threading
 
 from agent.core.logger import get_logger
 from agent.modes.base_agent import BaseAgent
 from agent.modes.agent_state import AgentState
 from agent.utils.cic_feature_extractor import extract_cic_features
 
-logger = get_logger("network_agent")
+from agent.discovery.dhcp_sniffer import DHCPDeviceSniffer
+from agent.discovery.arp_monitor import ARPMonitor
+from agent.discovery.events import DeviceDiscoveredEvent
 
 
 class NetworkAgent(BaseAgent):
@@ -78,18 +81,63 @@ class NetworkAgent(BaseAgent):
             }
         }
 
+    def _on_device_discovered(self, event: DeviceDiscoveredEvent):
+        """
+        Called whenever a new device is detected on the network.
+        This is the SINGLE entry point for onboarding devices.
+        """
+
+        self.logger.info(
+            f"DEVICE DISCOVERED | "
+            f"IP={event.ip} | "
+            f"MAC={event.mac} | "
+            f"SRC={event.source}"
+        )
+    
+    def _start_device_discovery(self):
+        """
+        Starts background sniffers for device discovery.
+        Runs independently from packet capture.
+        """
+
+        self.logger.info("Starting device discovery subsystem")
+
+        dhcp_sniffer = DHCPDeviceSniffer(self._on_device_discovered)
+        arp_monitor = ARPMonitor(self._on_device_discovered)
+
+        threading.Thread(
+            target=dhcp_sniffer.run,
+            daemon=True,
+            name="DHCP-Sniffer"
+        ).start()
+
+        threading.Thread(
+            target=arp_monitor.run,
+            daemon=True,
+            name="ARP-Monitor"
+        ).start()
+
     def run(self):
-        logger.info("NetworkAgent starting")
+        self.logger.info("NetworkAgent starting")
 
-        # --- Registration loop ---
+        # 🟢 STEP 1: start device discovery (background threads)
+        self._start_device_discovery()
+
+        # --- Registration loop (main thread) ---
         while self.state != AgentState.REGISTERED:
-            logger.info("Waiting for backend registration...")
+            self.logger.info("Waiting for backend registration...")
             self.register()
+            time.sleep(2)
 
-        # --- Main loop ---
+        self.logger.info("Agent successfully registered")
+
+        # --- Main control loop ---
         while True:
             try:
                 flow = self._collect_flow()
+                if not flow:
+                    continue
+
                 features = extract_cic_features(flow)
 
                 payload = {
@@ -111,6 +159,6 @@ class NetworkAgent(BaseAgent):
                 self.heartbeat()
 
             except Exception as e:
-                logger.exception(f"Agent loop error: {e}")
+                self.logger.exception(f"Agent loop error: {e}")
 
             time.sleep(self.polling_interval)

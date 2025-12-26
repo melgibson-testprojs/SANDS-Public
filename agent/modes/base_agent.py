@@ -11,6 +11,8 @@ class BaseAgent:
         self.comm_http = comm_http
         self.comm_mqtt = comm_mqtt
 
+        self.logger = get_logger(self.__class__.__name__)
+
         self.agent_id = config.agent_id
         self.token = config.token
 
