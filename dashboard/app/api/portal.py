@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from dashboard.app.templates_engine import templates
 
 from dashboard.app.services.device_store import device_store
 
 router = APIRouter()
-templates = Jinja2Templates(directory="dashboard/app/templates")
 
 @router.get("/portal", response_class=HTMLResponse)
 def captive_portal(request: Request):

@@ -1,47 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>SwarmSec Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
-    <h1>🛡️ SwarmSec Live Dashboard</h1>
+<h1>🛡️ SwarmSec SOC Dashboard</h1>
 
-    {% if devices and devices|length > 0 %}
-        <table border="1" cellpadding="10" cellspacing="0">
-            <thead>
-                <tr>
-                    <th>Identity Key</th>
-                    <th>Agent ID</th>
-                    <th>IP Address</th>
-                    <th>MAC Address</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for d in devices %}
-                <tr>
-                    <td><strong>{{ d.key }}</strong></td>
-                    <td>{{ d.agent_id or "—" }}</td>
-                    <td>{{ d.ip or "—" }}</td>
-                    <td>{{ d.mac or "unknown" }}</td>
-                    <td>{{ d.status }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No devices registered yet.</p>
-    {% endif %}
-
-    <hr>
-
-    <p style="opacity: 0.6;">
-        SwarmSec Control Backend • Phase 2.1
-    </p>
+<div style="display:flex;gap:20px;flex-wrap:wrap;">
+{% for d in devices %}
+  <a href="/soc/{{ d.key }}" style="text-decoration:none;color:inherit;">
+    <div style="
+        border:1px solid #444;
+        padding:20px;
+        width:220px;
+        border-radius:10px;
+        background:#111;">
+        <h3>{{ d.key }}</h3>
+        <p>Status: <strong>{{ d.status }}</strong></p>
+        <p>IP: {{ d.ip }}</p>
+        <p>MAC: {{ d.mac or "unknown" }}</p>
+    </div>
+  </a>
+{% endfor %}
+</div>
 
 </body>
 </html>

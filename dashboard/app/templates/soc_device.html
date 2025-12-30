@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SOC Device View</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h1>🔍 SOC Device View</h1>
+
+<h2>{{ device.key }}</h2>
+
+<ul>
+    <li><strong>Status:</strong> {{ device.status }}</li>
+    <li><strong>IP:</strong> {{ device.ip }}</li>
+    <li><strong>MAC:</strong> {{ device.mac or "unknown" }}</li>
+    <li><strong>Last Seen:</strong> {{ device.last_seen | humantime }}</li>
+</ul>
+
+<hr>
+
+<h3>Security Modules (coming next)</h3>
+<ul>
+    <li>Network behavior</li>
+    <li>Threat detections</li>
+    <li>Isolation controls</li>
+    <li>Historical timeline</li>
+</ul>
+
+<a href="/dashboard">⬅ Back to Dashboard</a>
+
+</body>
+</html>
