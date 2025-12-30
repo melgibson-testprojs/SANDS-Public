@@ -6,6 +6,9 @@ from dashboard.app.api.dashboard import router as dashboard_router
 from dashboard.app.api.agent import router as agent_router
 import time
 from dashboard.app.api.state import router as state_router
+from dashboard.app.api.predictions import router as predictions_router
+from dashboard.app.api.prediction_state import router as prediction_state_router
+
 
 
 
@@ -15,6 +18,9 @@ app.include_router(portal_router)
 app.include_router(dashboard_router)
 app.include_router(agent_router)
 app.include_router(state_router)
+app.include_router(predictions_router)
+app.include_router(prediction_state_router)
+
 
 app.mount(
     "/static",

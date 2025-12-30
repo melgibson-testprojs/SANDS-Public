@@ -3,14 +3,17 @@
 
 <head>
     <title>SOC Device View</title>
-    <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
 
-    <h1>🔍 SOC Device View</h1>
+    <h1>🔍 SOC View</h1>
+    <h2>{{ device.key }}</h2>
 
     <ul id="details"></ul>
+
+    <h3>🧠 Live Predictions</h3>
+    <ul id="predictions"></ul>
 
     <a href="/dashboard">⬅ Back</a>
 
@@ -20,20 +23,39 @@
         async function refreshDevice() {
             const res = await fetch("/api/state");
             const data = await res.json();
-
-            const device = data.devices.find(d => d.key === deviceKey);
-            if (!device) return;
+            const d = data.devices.find(x => x.key === deviceKey);
+            if (!d) return;
 
             document.getElementById("details").innerHTML = `
-      <li><strong>Key:</strong> ${device.key}</li>
-      <li><strong>Status:</strong> ${device.status}</li>
-      <li><strong>IP:</strong> ${device.ip}</li>
-      <li><strong>MAC:</strong> ${device.mac || "unknown"}</li>
-      <li><strong>Last Seen:</strong> ${new Date(device.last_seen * 1000).toLocaleString()}</li>`;
+      <li>Status: ${d.status}</li>
+      <li>IP: ${d.ip}</li>
+      <li>MAC: ${d.mac || "unknown"}</li>
+      <li>Last Seen: ${new Date(d.last_seen * 1000).toLocaleString()}</li>
+    `;
+        }
+
+        async function refreshPredictions() {
+            const res = await fetch(`/api/predictions/${encodeURIComponent(deviceKey)}`);
+            const data = await res.json();
+
+            const list = document.getElementById("predictions");
+            list.innerHTML = "";
+
+            data.predictions.slice().reverse().forEach(p => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+          <b>${p.decision}</b>
+          (score: ${p.score.toFixed(2)})<br>
+          <small>${new Date(p.ts * 1000).toLocaleString()}</small>
+        `;
+                list.appendChild(li);
+            });
         }
 
         refreshDevice();
+        refreshPredictions();
         setInterval(refreshDevice, 3000);
+        setInterval(refreshPredictions, 3000);
     </script>
 
 </body>

@@ -14,6 +14,8 @@ import joblib
 from fusion.fusion_engine import FusionEngine
 from agent.utils.cic_feature_extractor import FEATURE_NAMES
 from server.logger import get_ids_logger, get_server_logger
+from server.event_emitter import emit_prediction_event
+
 
 # ---------------------------------------------------
 # LOGGER
@@ -172,6 +174,11 @@ def telemetry(req: TelemetryRequest):
         f"RECON_ERR={result.get('reconstruction_error')}"
     )
 
+    emit_prediction_event(
+        agent_id=req.agent_id,
+        fusion_result=result,
+        flow_meta=req.flow_meta
+    )
 
     return {
         "agent_id": req.agent_id,
