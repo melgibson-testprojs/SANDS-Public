@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SwarmSec Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+    <h1>🛡️ SwarmSec Live Dashboard</h1>
+
+    {% if devices and devices|length > 0 %}
+        <table border="1" cellpadding="10" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Identity Key</th>
+                    <th>Agent ID</th>
+                    <th>IP Address</th>
+                    <th>MAC Address</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in devices %}
+                <tr>
+                    <td><strong>{{ d.key }}</strong></td>
+                    <td>{{ d.agent_id or "—" }}</td>
+                    <td>{{ d.ip or "—" }}</td>
+                    <td>{{ d.mac or "unknown" }}</td>
+                    <td>{{ d.status }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No devices registered yet.</p>
+    {% endif %}
+
+    <hr>
+
+    <p style="opacity: 0.6;">
+        SwarmSec Control Backend • Phase 2.1
+    </p>
+
+</body>
+</html>
