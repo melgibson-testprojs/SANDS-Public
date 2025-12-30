@@ -13,13 +13,15 @@ import joblib
 
 from fusion.fusion_engine import FusionEngine
 from agent.utils.cic_feature_extractor import FEATURE_NAMES
-from server.logger import get_ids_logger
+from server.logger import get_ids_logger, get_server_logger
 
 # ---------------------------------------------------
 # LOGGER
 # ---------------------------------------------------
 
-ids_logger = get_ids_logger()
+ids_logger = get_ids_logger()        # prediction only
+server_logger = get_server_logger()  # everything else
+
 
 # ---------------------------------------------------
 # LOAD SCALER
@@ -169,6 +171,7 @@ def telemetry(req: TelemetryRequest):
         f"AE_FLAG={result.get('autoencoder_flag')} | "
         f"RECON_ERR={result.get('reconstruction_error')}"
     )
+
 
     return {
         "agent_id": req.agent_id,

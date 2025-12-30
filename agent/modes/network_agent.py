@@ -1,6 +1,9 @@
 import time
 import random
 import threading
+import hashlib
+from agent.core.logical_agents.registry import LogicalAgentRegistry
+from agent.core.logical_agents.registry import DeviceState
 
 from agent.core.logger import get_logger
 from agent.modes.base_agent import BaseAgent
@@ -17,12 +20,37 @@ class NetworkAgent(BaseAgent):
         super().__init__(config, comm_http, comm_mqtt)
         self.polling_interval = config.polling_interval
 
+        self.logical_registry = LogicalAgentRegistry(
+            physical_agent_id=self.agent_id
+        )
+
+        self._warned_unknown_ips = set()
+        self._warned_blocked_devices = set()
+
+        self.auto_approve = True  # DEV ONLY
+
+    def _pick_known_device_ip(self):
+        """
+        Pick a random known device IP from the logical registry.
+        Returns None if no devices are known yet.
+        """
+        with self.logical_registry._lock:
+            if not self.logical_registry.ip_index:
+                return None
+            return random.choice(list(self.logical_registry.ip_index.keys()))
+
+
+
+
     def _collect_flow(self):
         """Synthetic flow generator (D2 replaces this)."""
         now = time.time()
         packets = []
 
-        src_ip = "10.0.0.5"
+        src_ip = self._pick_known_device_ip()
+        if not src_ip:
+            return None
+
         dst_ip = "192.0.2.10"
         src_port = random.randint(1024, 65535)
         dst_port = 80
@@ -82,17 +110,41 @@ class NetworkAgent(BaseAgent):
         }
 
     def _on_device_discovered(self, event: DeviceDiscoveredEvent):
-        """
-        Called whenever a new device is detected on the network.
-        This is the SINGLE entry point for onboarding devices.
-        """
+        device_id = self._generate_device_id(event.mac)
 
-        self.logger.info(
-            f"DEVICE DISCOVERED | "
-            f"IP={event.ip} | "
-            f"MAC={event.mac} | "
-            f"SRC={event.source}"
+        created = self.logical_registry.register_device(
+            device_id=device_id,
+            ip=event.ip,
+            mac=event.mac,
+            hostname=event.hostname
         )
+
+        if created:
+            self.logger.info(
+                "LOGICAL_AGENT_CREATED | "
+                f"physical_agent={self.agent_id} | "
+                f"device_id={device_id} | "
+                f"ip={event.ip} | "
+                f"mac={event.mac} | "
+                f"hostname={event.hostname or 'UNKNOWN'} | "
+                f"source={event.source} | "
+                f"state=NEW"
+            )
+        else:
+            self.logger.debug(
+                f"KNOWN DEVICE | "
+                f"device_id={device_id} | "
+                f"IP={event.ip}"
+            )
+        
+        # DEV ONLY — auto-approve devices
+        if self.auto_approve:
+            self.logical_registry.set_state(
+                device_id,
+                DeviceState.APPROVED
+            )
+
+
     
     def _start_device_discovery(self):
         """
@@ -117,6 +169,15 @@ class NetworkAgent(BaseAgent):
             name="ARP-Monitor"
         ).start()
 
+    def _generate_device_id(self, mac: str) -> str:
+        """
+        Stable logical agent ID:
+        SHA256(physical_agent_id + MAC)
+        """
+        raw = f"{self.agent_id}:{mac}".encode()
+        return hashlib.sha256(raw).hexdigest()[:16]
+
+
     def run(self):
         self.logger.info("NetworkAgent starting")
 
@@ -138,10 +199,34 @@ class NetworkAgent(BaseAgent):
                 if not flow:
                     continue
 
+                device_id = self.logical_registry.resolve_device(flow["src_ip"])
+
+                if not device_id:
+                    if flow["src_ip"] not in self._warned_unknown_ips:
+                        self.logger.warning(
+                            f"FLOW FROM UNKNOWN DEVICE | src_ip={flow['src_ip']}"
+                        )
+                        self._warned_unknown_ips.add(flow["src_ip"])
+                    continue
+                
+                state = self.logical_registry.get_state(device_id)
+
+                if state != DeviceState.APPROVED:
+                    if device_id not in self._warned_blocked_devices:
+                        self.logger.info(
+                            f"FLOW DROPPED | "
+                            f"device_id={device_id} | "
+                            f"state={state.value}"
+                        )
+                        self._warned_blocked_devices.add(device_id)
+                    continue
+
+
                 features = extract_cic_features(flow)
 
                 payload = {
                     "agent_id": self.agent_id,
+                    "logical_agent_id": device_id,
                     "ts": time.time(),
                     "features": features,
                     "flow_meta": {
@@ -152,6 +237,7 @@ class NetworkAgent(BaseAgent):
                         "protocol": flow["protocol"]
                     }
                 }
+
 
                 if self.state == AgentState.REGISTERED:
                     self.send_telemetry(payload)
