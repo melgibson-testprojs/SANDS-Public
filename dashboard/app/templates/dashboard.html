@@ -1,30 +1,56 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>SwarmSec Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <title>SwarmSec SOC Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
 
-<h1>🛡️ SwarmSec SOC Dashboard</h1>
+  <h1>🛡️ SwarmSec SOC Dashboard</h1>
 
-<div style="display:flex;gap:20px;flex-wrap:wrap;">
-{% for d in devices %}
-  <a href="/soc/{{ d.key }}" style="text-decoration:none;color:inherit;">
-    <div style="
-        border:1px solid #444;
-        padding:20px;
-        width:220px;
-        border-radius:10px;
-        background:#111;">
-        <h3>{{ d.key }}</h3>
-        <p>Status: <strong>{{ d.status }}</strong></p>
-        <p>IP: {{ d.ip }}</p>
-        <p>MAC: {{ d.mac or "unknown" }}</p>
-    </div>
-  </a>
-{% endfor %}
-</div>
+  <div id="cards" style="display:flex;gap:20px;flex-wrap:wrap;"></div>
+
+  <script>
+    async function fetchState() {
+      const res = await fetch("/api/state");
+      const data = await res.json();
+
+      const container = document.getElementById("cards");
+      container.innerHTML = "";
+
+      data.devices.forEach(d => {
+        const card = document.createElement("a");
+        card.href = `/soc/${encodeURIComponent(d.key)}`;
+        card.style.textDecoration = "none";
+        card.style.color = "inherit";
+
+        card.innerHTML = `
+          <div style="
+            border:1px solid #444;
+            padding:20px;
+            width:220px;
+            border-radius:10px;
+            background:#111;">
+            <h3>${d.key}</h3>
+            <p>Status: <strong>${d.status}</strong></p>
+            <p>IP: ${d.ip || "-"}</p>
+            <p>MAC: ${d.mac || "unknown"}</p>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // initial load
+    fetchState();
+
+    // poll every 5 seconds
+    setInterval(fetchState, 5000);
+  </script>
 
 </body>
+
 </html>

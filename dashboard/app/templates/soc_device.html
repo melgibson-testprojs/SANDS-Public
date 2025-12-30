@@ -1,33 +1,41 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>SOC Device View</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
 
-<h1>🔍 SOC Device View</h1>
+    <h1>🔍 SOC Device View</h1>
 
-<h2>{{ device.key }}</h2>
+    <ul id="details"></ul>
 
-<ul>
-    <li><strong>Status:</strong> {{ device.status }}</li>
-    <li><strong>IP:</strong> {{ device.ip }}</li>
-    <li><strong>MAC:</strong> {{ device.mac or "unknown" }}</li>
-    <li><strong>Last Seen:</strong> {{ device.last_seen | humantime }}</li>
-</ul>
+    <a href="/dashboard">⬅ Back</a>
 
-<hr>
+    <script>
+        const deviceKey = "{{ device.key }}";
 
-<h3>Security Modules (coming next)</h3>
-<ul>
-    <li>Network behavior</li>
-    <li>Threat detections</li>
-    <li>Isolation controls</li>
-    <li>Historical timeline</li>
-</ul>
+        async function refreshDevice() {
+            const res = await fetch("/api/state");
+            const data = await res.json();
 
-<a href="/dashboard">⬅ Back to Dashboard</a>
+            const device = data.devices.find(d => d.key === deviceKey);
+            if (!device) return;
+
+            document.getElementById("details").innerHTML = `
+      <li><strong>Key:</strong> ${device.key}</li>
+      <li><strong>Status:</strong> ${device.status}</li>
+      <li><strong>IP:</strong> ${device.ip}</li>
+      <li><strong>MAC:</strong> ${device.mac || "unknown"}</li>
+      <li><strong>Last Seen:</strong> ${new Date(device.last_seen * 1000).toLocaleString()}</li>`;
+        }
+
+        refreshDevice();
+        setInterval(refreshDevice, 3000);
+    </script>
 
 </body>
+
 </html>

@@ -5,7 +5,7 @@ import hashlib
 from agent.core.logical_agents.registry import LogicalAgentRegistry
 from agent.core.logical_agents.registry import DeviceState
 
-from agent.core.logger import get_logger, get_prediction_logger
+from agent.core.logger import get_logger
 from agent.modes.base_agent import BaseAgent
 from agent.modes.agent_state import AgentState
 from agent.utils.cic_feature_extractor import extract_cic_features
@@ -15,7 +15,6 @@ from agent.discovery.arp_monitor import ARPMonitor
 from agent.discovery.events import DeviceDiscoveredEvent
 
 logger = get_logger("network_agent")
-pred_logger = get_prediction_logger()
 
 class NetworkAgent(BaseAgent):
     def __init__(self, config, comm_http, comm_mqtt=None):
