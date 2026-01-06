@@ -47,3 +47,19 @@ class HTTPClient:
         except Exception as e:
             logger.error(f"telemetry failed: {e}")
             raise
+    
+    def post(self, path: str, payload: dict):
+        url = f"{self.server}{path}"
+        try:
+            r = requests.post(
+                url,
+                json=payload,
+                headers=self._headers(),
+                timeout=self.timeout
+            )
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            logger.error(f"POST {path} failed: {e}")
+            raise
+

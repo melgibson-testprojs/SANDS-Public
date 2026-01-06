@@ -1,3 +1,4 @@
+import os
 import time
 import random
 import threading
@@ -17,8 +18,10 @@ from agent.discovery.events import DeviceDiscoveredEvent
 logger = get_logger("network_agent")
 
 class NetworkAgent(BaseAgent):
-    def __init__(self, config, comm_http, comm_mqtt=None):
+    def __init__(self, config, comm_http, dashboard_http, comm_mqtt=None):
         super().__init__(config, comm_http, comm_mqtt)
+        self.dashboard_http = dashboard_http
+
         self.polling_interval = config.polling_interval
 
         self.logical_registry = LogicalAgentRegistry(
@@ -27,8 +30,9 @@ class NetworkAgent(BaseAgent):
 
         self._warned_unknown_ips = set()
         self._warned_blocked_devices = set()
+        self._portal_bind_sent = set()
 
-        self.auto_approve = True  # DEV ONLY
+        self.auto_approve = False  # DEV ONLY
 
     def _pick_known_device_ip(self):
         """
@@ -131,19 +135,35 @@ class NetworkAgent(BaseAgent):
                 f"source={event.source} | "
                 f"state=NEW"
             )
+
+            portal_token = os.getenv("PORTAL_TOKEN")
+
+            if portal_token:
+                try:
+                    self.dashboard_http.post(
+                        "/agent/bind",
+                        {
+                            "portal_token": portal_token,
+                            "mac": event.mac,
+                            "agent_id": self.agent_id
+                        }
+                    )
+                    
+                    self._portal_bind_sent.add(event.mac)
+
+                    self.logger.info(
+                        f"PORTAL_BIND_SENT | mac={event.mac}"
+                    )
+                except Exception as e:
+                    self.logger.warning(
+                        f"PORTAL_BIND_FAILED | mac={event.mac} | {e}"
+                    )
+
         else:
             self.logger.debug(
-                f"KNOWN DEVICE | "
-                f"device_id={device_id} | "
-                f"IP={event.ip}"
+                f"KNOWN DEVICE | device_id={device_id} | IP={event.ip}"
             )
-        
-        # DEV ONLY — auto-approve devices
-        if self.auto_approve:
-            self.logical_registry.set_state(
-                device_id,
-                DeviceState.APPROVED
-            )
+
 
 
     
