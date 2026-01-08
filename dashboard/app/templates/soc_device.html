@@ -7,19 +7,28 @@
 
 <body>
 
-    <h1>🔍 SOC View</h1>
-    <h2>{{ device.key }}</h2>
+  <h1>🔍 SOC Device View</h1>
+  <h2 id="deviceKey">{{ device.key }}</h2>
 
-    <ul id="details"></ul>
+  <!-- QUICK ACTIONS -->
+  <div style="margin:16px 0; display:flex; gap:12px;">
+    <button onclick="inspectDevice()">🔎 Inspect</button>
+    <button onclick="allowDevice()" style="color:#3ddc97;">✅ Allow</button>
+    <button onclick="blockDevice()" style="color:#ff6b6b;">⛔ Block</button>
+  </div>
 
-    <h3>🧠 Live Predictions</h3>
-    <ul id="predictions"></ul>
+  <h3>📌 Device Details</h3>
+  <ul id="details"></ul>
 
-    <a href="/dashboard">⬅ Back</a>
+  <h3>🧠 Live Predictions</h3>
+  <ul id="predictions"></ul>
+
+  <a href="/dashboard">⬅ Back</a>
+
 
     <script>
         const deviceKey = "{{ device.key }}";
-
+        
         async function refreshDevice() {
             const res = await fetch("/api/state");
             const data = await res.json();
@@ -51,7 +60,7 @@
                 list.appendChild(li);
             });
         }
-
+        
         refreshDevice();
         refreshPredictions();
         setInterval(refreshDevice, 3000);

@@ -4,15 +4,318 @@
 <head>
   <title>SwarmSec SOC Dashboard</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* =========================
+   DARK ANALYTICS SOC THEME
+========================= */
+
+    :root {
+      --bg-main: #0c0f14;
+      --bg-canvas: #0f131a;
+      --card-bg: #151a23;
+      --card-bg-soft: #1a2030;
+
+      --text-main: #e8ebf1;
+      --text-muted: #9aa3b2;
+
+      --accent-blue: #4f8cff;
+      --accent-green: #3ddc97;
+      --accent-yellow: #f6c343;
+      --accent-red: #ff6b6b;
+
+      --radius-lg: 16px;
+      --radius-md: 12px;
+
+      --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 28px;
+      background: radial-gradient(circle at top, #121826, var(--bg-main));
+      color: var(--text-main);
+      font-family: Inter, Segoe UI, system-ui, sans-serif;
+    }
+
+    /* =========================
+   HEADER
+========================= */
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 span {
+      color: var(--accent-blue);
+    }
+
+    /* =========================
+   KPI CARDS
+========================= */
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .summary-card {
+      background: linear-gradient(180deg,
+          var(--card-bg),
+          var(--card-bg-soft));
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .summary-card small {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .summary-card b {
+      display: block;
+      margin-top: 8px;
+      font-size: 30px;
+      font-weight: 600;
+    }
+
+    /* =========================
+   ACTION BUTTONS
+========================= */
+    .action-bar {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 26px;
+    }
+
+    .action-btn {
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      font-size: 14px;
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .action-btn.primary {
+      color: var(--accent-blue);
+    }
+
+    .action-btn.danger {
+      color: var(--accent-red);
+    }
+
+    /* =========================
+   MAIN LAYOUT
+========================= */
+    .layout {
+      display: grid;
+      grid-template-columns: 2.2fr 1.8fr;
+      gap: 22px;
+    }
+
+    /* =========================
+   CARDS / PANELS
+========================= */
+    .panel {
+      background: linear-gradient(180deg,
+          var(--card-bg),
+          var(--card-bg-soft));
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .panel h2 {
+      margin: 0 0 14px 0;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* =========================
+   DEVICES
+========================= */
+    .device-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .device-card {
+      background: #111726;
+      border-radius: var(--radius-md);
+      padding: 14px;
+      font-size: 13px;
+    }
+
+    .device-card h3 {
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    /* FIXED & SCROLLABLE DEVICES PANEL */
+    .devices-scroll {
+      max-height: 420px;     /* adjust if you want */
+      overflow-y: auto;
+      padding-right: 6px;   /* space for scrollbar */
+    }
+
+    /* Optional: nicer scrollbar (Chrome-based browsers) */
+    .devices-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .devices-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+    }
+
+
+    /* =========================
+   STATUS COLORS
+========================= */
+    .status-online {
+      color: var(--accent-green);
+    }
+
+    .status-stale {
+      color: var(--accent-yellow);
+    }
+
+    .status-offline {
+      color: var(--accent-red);
+    }
+
+    /* =========================
+   CHART
+========================= */
+    .chart-wrap {
+      height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* =========================
+   EVENTS
+========================= */
+    /* LIVE EVENTS FIXED AREA */
+    .events {
+      max-height: 160px;          /* fixed height */
+      overflow: hidden;           /* hide overflow */
+      display: flex;
+      flex-direction: column;
+    }
+
+
+    .events li {
+      font-size: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
+    .events li strong {
+      color: var(--text-main);
+    }
+  </style>
+
+
 </head>
 
 <body>
 
-  <h1>🛡️ SwarmSec SOC Dashboard</h1>
+  <h1>🛡️ <span>SwarmSec SOC Dashboard</span></h1>
 
-  <div id="cards" style="display:flex;gap:20px;flex-wrap:wrap;"></div>
+  <!-- 🟦 SUMMARY -->
+  <div class="summary">
+    <div class="summary-card">
+      <small>Total Devices</small>
+      <b id="totalDevices">–</b>
+    </div>
+    <div class="summary-card">
+      <small>Online Devices</small>
+      <b id="onlineDevices">–</b>
+    </div>
+    <div class="summary-card">
+      <small>Recent Threats</small>
+      <b id="recentThreats">–</b>
+    </div>
+    <div class="summary-card">
+      <small>System Status</small>
+      <b id="systemStatus">–</b>
+    </div>
+  </div>
+
+  <!-- 🔧 ACTION BAR -->
+  <div class="action-bar">
+    <button class="action-btn primary">🔬 Traffic Analysis</button>
+    <button class="action-btn">🧠 ML Inspector</button>
+    <button class="action-btn">📉 Drift Monitor</button>
+    <button class="action-btn danger">🚨 Incident View</button>
+  </div>
+
+  <!-- 🟨 MAIN LAYOUT -->
+  <div class="layout">
+
+    <!-- LEFT PANEL -->
+    <div class="panel">
+      <h2>Devices</h2>
+      <div class="devices-scroll">
+        <div id="cards" class="device-grid"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h2>Threat Overview</h2>
+      <div class="chart-wrap">
+        <canvas id="decisionChart"></canvas>
+      </div>
+
+      <h2 style="margin-top:20px;">Live Events</h2>
+      <ul id="events" class="events"></ul>
+    </div>
+
+  </div>
 
   <script>
+    function computeDeviceRisk(deviceKey, events) {
+      const now = Date.now() / 1000;
+      const recentWindow = 300; // 5 minutes
+
+      let hasSuspicious = false;
+
+      for (const e of events) {
+        if (e.device !== deviceKey) continue;
+        if (now - e.ts > recentWindow) continue;
+
+        if (e.decision === "ATTACK") return "HIGH";
+        if (e.decision === "SUSPICIOUS") hasSuspicious = true;
+      }
+
+      return hasSuspicious ? "MED" : "LOW";
+    }
+
+    
+    /* -------------------- DEVICE STATE -------------------- */
     async function fetchState() {
       const res = await fetch("/api/state");
       const data = await res.json();
@@ -21,22 +324,37 @@
       container.innerHTML = "";
 
       data.devices.forEach(d => {
+        const risk = computeDeviceRisk(d.key, cachedEvents);
+
+        const riskColor = {
+          "LOW": "#3ddc97",
+          "MED": "#f6c343",
+          "HIGH": "#ff6b6b"
+        }[risk];
+
         const card = document.createElement("a");
         card.href = `/soc/${encodeURIComponent(d.key)}`;
         card.style.textDecoration = "none";
         card.style.color = "inherit";
 
         card.innerHTML = `
-          <div style="
-            border:1px solid #444;
-            padding:20px;
-            width:220px;
-            border-radius:10px;
-            background:#111;">
+          <div class="device-card">
             <h3>${d.key}</h3>
-            <p>Status: <strong>${d.status}</strong></p>
+
+            <p>Status:
+              <strong class="status-${d.status}">
+                ${d.status.toUpperCase()}
+              </strong>
+            </p>
+
             <p>IP: ${d.ip || "-"}</p>
-            <p>MAC: ${d.mac || "unknown"}</p>
+
+            <p>
+              Risk:
+              <strong style="color:${riskColor}">
+                ${risk}
+              </strong>
+            </p>
           </div>
         `;
 
@@ -44,11 +362,128 @@
       });
     }
 
-    // initial load
-    fetchState();
 
-    // poll every 5 seconds
-    setInterval(fetchState, 5000);
+    /* -------------------- SUMMARY -------------------- */
+    async function loadSummary() {
+      const res = await fetch("/dashboard/summary");
+      const s = await res.json();
+
+      document.getElementById("totalDevices").textContent = s.total_devices;
+      document.getElementById("onlineDevices").textContent = s.online_devices;
+      document.getElementById("recentThreats").textContent = s.recent_threats;
+      document.getElementById("systemStatus").textContent = s.system_status;
+    }
+
+    /* -------------------- CHART -------------------- */
+    let decisionChart = null;
+
+    async function loadDecisionChart() {
+      const res = await fetch("/dashboard/decision_breakdown");
+      const d = await res.json();
+
+      const ctx = document.getElementById("decisionChart").getContext("2d");
+
+      if (!decisionChart) {
+        decisionChart = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: ["Benign", "Suspicious", "Attack"],
+            datasets: [{
+              data: [d.BENIGN, d.SUSPICIOUS, d.ATTACK],
+              backgroundColor: ["#3ddc97", "#f6c343", "#ff6b6b"]
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: "top",
+                fullSize: false,          // ⭐ THIS IS THE FIX
+                align: "center",
+                labels: {
+                  boxWidth: 18,           // smaller boxes = less wrap
+                  padding: 14,
+                  color: "#9aa3b2",
+                  font: {
+                    size: 13,
+                    weight: "500"
+                  }
+                }
+              }
+            }
+          }
+        });
+
+      } else {
+        decisionChart.data.datasets[0].data = [
+          d.BENIGN, d.SUSPICIOUS, d.ATTACK
+        ];
+        decisionChart.update();
+      }
+    }
+
+    /* -------------------- EVENTS -------------------- */
+    async function loadEvents() {
+      const res = await fetch("/dashboard/events");
+      const events = await res.json();
+
+      const ul = document.getElementById("events");
+      ul.innerHTML = "";
+
+      // Sort newest first
+      events.sort((a, b) => b.ts - a.ts);
+
+      // Keep only latest 4 events
+      const visibleEvents = events.slice(0, 3);
+
+      visibleEvents.forEach(e => {
+        const li = document.createElement("li");
+        const time = new Date(e.ts * 1000).toLocaleTimeString();
+
+        let icon = "✅";
+        let color = "#3ddc97";
+
+        if (e.decision === "SUSPICIOUS") {
+          icon = "⚠️";
+          color = "#f6c343";
+        }
+        if (e.decision === "ATTACK") {
+          icon = "🚨";
+          color = "#ff6b6b";
+        }
+
+        li.innerHTML = `
+          <strong>[${time}]</strong>
+          <span style="color:${color}">
+            ${icon} ${e.decision}
+          </span>
+          (${e.device})
+        `;
+
+        ul.appendChild(li);
+      });
+    }
+
+
+    /* -------------------- REFRESH -------------------- */
+    let cachedEvents = [];
+
+    async function refreshAll() {
+      const eventRes = await fetch("/dashboard/events");
+      cachedEvents = await eventRes.json();
+
+      fetchState();
+      loadSummary();
+      loadDecisionChart();
+      loadEvents();
+    }
+
+    refreshAll();
+    setInterval(refreshAll, 2000);
+
+    
   </script>
 
 </body>

@@ -1,10 +1,178 @@
-body {
-    font-family: Arial, sans-serif;
-    background: #111;
-    color: #eee;
-    padding: 40px;
+/* =======================
+   SOC THEME
+======================= */
+:root {
+    --bg-main: #0b0e14;
+    --bg-panel: #11151f;
+    --bg-panel-soft: #151a26;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+
+    --text-main: #e6e8ee;
+    --text-muted: #9aa4bf;
+
+    --green: #3ddc97;
+    --yellow: #f5c542;
+    --red: #ff5c5c;
 }
 
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 24px;
+    background: radial-gradient(circle at top, #0f1320, var(--bg-main));
+    color: var(--text-main);
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+/* HEADER */
 h1 {
-    color: #4ade80;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+
+h1 span {
+    color: var(--green);
+}
+
+/* =======================
+   SUMMARY
+======================= */
+.summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.summary-card {
+    background: linear-gradient(180deg, var(--bg-panel), var(--bg-panel-soft));
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.summary-card small {
+    color: var(--text-muted);
+}
+
+.summary-card b {
+    font-size: 30px;
+    margin-top: 6px;
+    display: block;
+}
+
+/* =======================
+   ACTION BAR
+======================= */
+.action-bar {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    background: #151a2b;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.action-btn.primary {
+    color: var(--green);
+    border-color: var(--green);
+}
+
+.action-btn.danger {
+    color: var(--red);
+    border-color: var(--red);
+}
+
+/* =======================
+   MAIN LAYOUT
+======================= */
+.layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+.panel {
+    background: linear-gradient(180deg, var(--bg-panel), var(--bg-panel-soft));
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 16px;
+}
+
+.panel h2 {
+    margin-top: 0;
+    font-size: 15px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* =======================
+   DEVICES
+======================= */
+.device-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.device-card {
+    background: #0e1220;
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 13px;
+}
+
+/* =======================
+   STATUS COLORS
+======================= */
+.status-online {
+    color: var(--green);
+}
+
+.status-stale {
+    color: var(--yellow);
+}
+
+.status-offline {
+    color: var(--red);
+}
+
+/* =======================
+   CHART
+======================= */
+.chart-wrap {
+    height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* =======================
+   EVENTS
+======================= */
+.events {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.events li {
+    font-size: 12px;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--border-subtle);
+    color: var(--text-muted);
 }

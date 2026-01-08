@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
+from enum import Enum
 
 from dashboard.app.services.device_store import device_store
 from dashboard.app.services.portal_tokens import portal_token_store
@@ -16,6 +17,10 @@ class AgentBind(BaseModel):
     portal_token: str
     mac: str
     agent_id: str
+
+class DeviceAction(str, Enum):
+    allow = "allow"
+    block = "block"
 
 @router.post("/agent/hello")
 def agent_hello(payload: AgentHello, request: Request):
@@ -52,4 +57,24 @@ def bind_device(payload: AgentBind, request: Request):
     return {
         "status": "approved",
         "device": device
+    }
+
+@router.post("/agent/device/{device_key}/{action}")
+def device_action(device_key: str, action: DeviceAction):
+    device = device_store.get(device_key)
+    if not device:
+        return {"status": "error", "reason": "device_not_found"}
+
+    if action == DeviceAction.allow:
+        device["approved"] = True
+        device["status"] = "online"
+
+    elif action == DeviceAction.block:
+        device["approved"] = False
+        device["status"] = "blocked"
+
+    return {
+        "status": "ok",
+        "device": device,
+        "action": action
     }

@@ -63,3 +63,20 @@ class HTTPClient:
             logger.error(f"POST {path} failed: {e}")
             raise
 
+    def get(self, path: str):
+        """
+        Generic GET request helper.
+        """
+        url = f"{self.server}{path}"
+        try:
+            r = requests.get(
+                url,
+                headers=self._headers(),
+                timeout=self.timeout
+            )
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            logger.error(f"GET {path} failed: {e}")
+            raise
+

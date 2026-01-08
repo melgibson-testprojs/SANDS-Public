@@ -31,6 +31,8 @@ class NetworkAgent(BaseAgent):
         self._warned_unknown_ips = set()
         self._warned_blocked_devices = set()
         self._portal_bind_sent = set()
+        self._last_approval_sync = 0
+        self._approval_poll_interval = 5.0  # seconds
 
         self.auto_approve = False  # DEV ONLY
 
@@ -138,7 +140,7 @@ class NetworkAgent(BaseAgent):
 
             portal_token = os.getenv("PORTAL_TOKEN")
 
-            if portal_token:
+            if portal_token and event.mac not in self._portal_bind_sent:
                 try:
                     self.dashboard_http.post(
                         "/agent/bind",
@@ -198,6 +200,35 @@ class NetworkAgent(BaseAgent):
         raw = f"{self.agent_id}:{mac}".encode()
         return hashlib.sha256(raw).hexdigest()[:16]
 
+    def _sync_approved_devices(self):
+        """
+        Poll dashboard for approved MACs and update local device states.
+        """
+        now = time.time()
+        if now - self._last_approval_sync < self._approval_poll_interval:
+            return
+
+        self._last_approval_sync = now
+
+        try:
+            resp = self.dashboard_http.get("/api/approved_macs")
+            approved_macs = set(m.lower() for m in resp.get("approved_macs", []))
+
+            for device_id, device in self.logical_registry.devices.items():
+                mac = device.get("mac", "").lower()
+                if mac and mac in approved_macs:
+                    if device["state"] != DeviceState.APPROVED:
+                        self.logical_registry.set_state(
+                            device_id,
+                            DeviceState.APPROVED
+                        )
+                else:
+                    if device["state"] == DeviceState.APPROVED:
+                        self.logical_registry.set_state(device_id, DeviceState.NEW)
+
+        except Exception as e:
+            self.logger.debug(f"Approval sync failed: {e}")
+
 
     def run(self):
         self.logger.info("NetworkAgent starting")
@@ -216,6 +247,9 @@ class NetworkAgent(BaseAgent):
         # --- Main control loop ---
         while True:
             try:
+                # 🔁 STEP A: sync approval state from dashboard
+                self._sync_approved_devices()
+
                 flow = self._collect_flow()
                 if not flow:
                     continue
