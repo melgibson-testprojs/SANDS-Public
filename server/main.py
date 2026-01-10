@@ -80,6 +80,7 @@ class HeartbeatRequest(BaseModel):
 
 class TelemetryRequest(BaseModel):
     agent_id: str
+    logical_agent_id: Optional[str] = None
     ts: float
     features: List[float]
     flow_meta: Optional[dict] = None
@@ -163,6 +164,8 @@ def telemetry(req: TelemetryRequest):
     # -------- IDS LOG ENTRY --------
     ids_logger.info(
         f"AGENT={req.agent_id} | "
+        f"LID={req.logical_agent_id or 'UNKNOWN'} | "     
+        f"MAC={req.flow_meta.get('mac')} | "    
         f"SRC={req.flow_meta.get('src_ip') if req.flow_meta else 'NA'}:"
         f"{req.flow_meta.get('src_port') if req.flow_meta else 'NA'} | "
         f"DST={req.flow_meta.get('dst_ip') if req.flow_meta else 'NA'}:"

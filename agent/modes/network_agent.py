@@ -319,7 +319,8 @@ class NetworkAgent(BaseAgent):
                     continue
                 
                 state = self.logical_registry.get_state(device_id)
-
+                device = self.logical_registry.get_device(device_id)
+                
                 if state != DeviceState.APPROVED:
                     if device_id not in self._warned_blocked_devices:
                         self.logger.info(
@@ -329,6 +330,11 @@ class NetworkAgent(BaseAgent):
                         )
                         self._warned_blocked_devices.add(device_id)
                     continue
+
+                self.logger.info(
+                    f"FLOW ACCEPTED | device_id={device_id} | ip={flow['src_ip']}"
+                )
+
 
                 features = extract_cic_features(flow)
 
@@ -342,9 +348,11 @@ class NetworkAgent(BaseAgent):
                         "dst_ip": flow["dst_ip"],
                         "src_port": flow["src_port"],
                         "dst_port": flow["dst_port"],
-                        "protocol": flow["protocol"]
+                        "protocol": flow["protocol"],
+                        "mac": device.get("mac")
                     }
                 }
+
 
 
                 if self.state == AgentState.REGISTERED:
