@@ -1,15 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SwarmSec Captive Portal</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <title>SwarmSec Network Access</title>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-    <h1>Welcome to SwarmSec</h1>
-    <p>Your device is requesting access.</p>
 
-    <form method="post" action="/portal/register">
-        <button type="submit">Register Device</button>
-    </form>
+<body>
+
+<h1 style="justify-content: center;text-align: center;">🔐 <span>SwarmSec Network Access</span></h1>
+
+<div class="panel" style="max-width:420px;margin:auto;">
+  <p style="color:var(--text-muted);">
+    This network is protected by SwarmSec.
+    Please register your device to continue.
+  </p>
+
+  <form method="post" action="/portal/register">
+    <button class="action-btn primary" style="width:100%;margin-top:16px;">
+      Register Device
+    </button>
+  </form>
+</div>
+
 </body>
 </html>

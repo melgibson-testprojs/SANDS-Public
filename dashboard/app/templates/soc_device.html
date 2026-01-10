@@ -1,72 +1,363 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>SOC Device View</title>
+  <title>SOC Device View</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    /* =========================
+      SWARMSEC SOC THEME (INLINE)
+    ========================= */
+
+    :root {
+      --bg-main: #0c0f14;
+      --card-bg: #151a23;
+      --card-bg-soft: #1a2030;
+
+      --text-main: #e8ebf1;
+      --text-muted: #9aa3b2;
+
+      --accent-blue: #4f8cff;
+      --accent-green: #3ddc97;
+      --accent-yellow: #f6c343;
+      --accent-red: #ff6b6b;
+
+      --radius-lg: 16px;
+      --radius-md: 12px;
+
+      --shadow-soft: 0 8px 30px rgba(0,0,0,0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 28px;
+      background: radial-gradient(circle at top, #121826, var(--bg-main));
+      color: var(--text-main);
+      font-family: Inter, Segoe UI, system-ui, sans-serif;
+    }
+
+    /* =========================
+      HEADERS
+    ========================= */
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 span {
+      color: var(--accent-blue);
+    }
+
+    h2 {
+      margin: 0 0 14px 0;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* =========================
+      KPI / SUMMARY CARDS
+    ========================= */
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .summary-card {
+      background: linear-gradient(
+        180deg,
+        var(--card-bg),
+        var(--card-bg-soft)
+      );
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .summary-card small {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .summary-card b {
+      display: block;
+      margin-top: 8px;
+      font-size: 30px;
+      font-weight: 600;
+    }
+
+    /* =========================
+      ACTION BAR / BUTTONS
+    ========================= */
+    .action-bar {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 26px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      padding: 10px 18px;
+      font-size: 14px;
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
+
+    .action-btn.primary {
+      color: var(--accent-blue);
+    }
+
+    .action-btn.danger {
+      color: var(--accent-red);
+    }
+
+    /* =========================
+      LAYOUT
+    ========================= */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    /* =========================
+      PANELS / CARDS
+    ========================= */
+    .panel {
+      background: linear-gradient(
+        180deg,
+        var(--card-bg),
+        var(--card-bg-soft)
+      );
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    /* =========================
+      LISTS (EVENTS / DETAILS)
+    ========================= */
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .events li {
+      font-size: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      color: var(--text-muted);
+    }
+
+    .events li strong {
+      color: var(--text-main);
+    }
+
+    /* =========================
+      STATUS COLORS
+    ========================= */
+    .status-online {
+      color: var(--accent-green);
+    }
+
+    .status-stale {
+      color: var(--accent-yellow);
+    }
+
+    .status-offline {
+      color: var(--accent-red);
+    }
+
+    /* =========================
+      LINKS
+    ========================= */
+    a {
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+    </style>
+
 </head>
 
 <body>
 
-  <h1>🔍 SOC Device View</h1>
-  <h2 id="deviceKey">{{ device.key }}</h2>
+<h1>🖥️ <span>Device SOC View</span></h1>
 
-  <!-- QUICK ACTIONS -->
-  <div style="margin:16px 0; display:flex; gap:12px;">
-    <button onclick="inspectDevice()">🔎 Inspect</button>
-    <button onclick="allowDevice()" style="color:#3ddc97;">✅ Allow</button>
-    <button onclick="blockDevice()" style="color:#ff6b6b;">⛔ Block</button>
+<!-- DEVICE SUMMARY -->
+<div class="summary">
+  <div class="summary-card">
+    <small>Device</small>
+    <b>{{ device.key }}</b>
+  </div>
+  <div class="summary-card">
+    <small>Status</small>
+    <b id="status">–</b>
+  </div>
+  <div class="summary-card">
+    <small>Risk</small>
+    <b id="risk">–</b>
+  </div>
+  <div class="summary-card">
+    <small>Last Seen</small>
+    <b id="lastSeen">–</b>
+  </div>
+</div>
+
+<!-- ACTION BAR -->
+<div class="action-bar">
+  <button class="action-btn" onclick="inspectDevice()">🔍 Inspect</button>
+  <button class="action-btn" style="color:#f6c343" onclick="quarantineDevice()">
+    🟡 Quarantine
+  </button>
+  <button class="action-btn danger" onclick="blockDevice()">🚫 Block Device</button>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="layout">
+
+  <!-- LEFT: DEVICE DETAILS -->
+  <div class="panel">
+    <h2>Device Details</h2>
+    <ul id="details" class="events"></ul>
   </div>
 
-  <h3>📌 Device Details</h3>
-  <ul id="details"></ul>
+  <!-- RIGHT: RECENT PREDICTIONS -->
+  <div class="panel">
+    <h2>Recent Predictions</h2>
+    <ul id="predictions" class="events"></ul>
+  </div>
 
-  <h3>🧠 Live Predictions</h3>
-  <ul id="predictions"></ul>
+</div>
 
-  <a href="/dashboard">⬅ Back</a>
+<a href="/dashboard" style="color:var(--accent-blue)">⬅ Back to Dashboard</a>
 
+<script>
+const deviceKey = "{{ device.key }}";
 
-    <script>
-        const deviceKey = "{{ device.key }}";
-        
-        async function refreshDevice() {
-            const res = await fetch("/api/state");
-            const data = await res.json();
-            const d = data.devices.find(x => x.key === deviceKey);
-            if (!d) return;
+/* -------- ACTIONS -------- */
 
-            document.getElementById("details").innerHTML = `
-      <li>Status: ${d.status}</li>
-      <li>IP: ${d.ip}</li>
-      <li>MAC: ${d.mac || "unknown"}</li>
-      <li>Last Seen: ${new Date(d.last_seen * 1000).toLocaleString()}</li>
+function inspectDevice() {
+  alert("Inspect: Deep analysis (Streamlit / traffic / ML view)");
+  // future:
+  // window.open(`/tools/inspect/${deviceKey}`, "_blank");
+}
+
+async function blockDevice() {
+  if (!confirm("Block this device? This will stop telemetry.")) return;
+
+  await fetch(`/agent/device/${encodeURIComponent(deviceKey)}/block`, {
+    method: "POST"
+  });
+
+  alert("Device blocked");
+  refreshDevice();
+}
+
+async function quarantineDevice() {
+  if (!confirm("Quarantine this device? It will remain monitored.")) return;
+
+  await fetch(
+    `/agent/device/${encodeURIComponent(deviceKey)}/quarantine`,
+    { method: "POST" }
+  );
+
+  alert("Device quarantined");
+  refreshDevice();
+}
+
+/* -------- DATA -------- */
+
+async function refreshDevice() {
+  const res = await fetch("/api/state");
+  const data = await res.json();
+  const d = data.devices.find(x => x.key === deviceKey);
+  if (!d) return;
+
+  document.getElementById("status").textContent = d.status.toUpperCase();
+  document.getElementById("lastSeen").textContent =
+    new Date(d.last_seen * 1000).toLocaleTimeString();
+
+  document.getElementById("details").innerHTML = `
+    <li>IP: ${d.ip || "-"}</li>
+    <li>MAC: ${d.mac || "unknown"}</li>
+    <li>Approved: ${d.approved}</li>
+  `;
+
+  // simple risk logic (same as dashboard)
+  let risk = "LOW";
+
+  if (d.status === "blocked") {
+    risk = "HIGH";
+  }
+  if (d.status === "quarantined") {
+    risk = "MED";
+  }
+
+  document.getElementById("risk").textContent = risk;
+  document.getElementById("status").textContent = d.status.toUpperCase();
+}
+
+async function refreshPredictions() {
+  const res = await fetch(`/api/predictions/${encodeURIComponent(deviceKey)}`);
+  const data = await res.json();
+
+  const list = document.getElementById("predictions");
+  list.innerHTML = "";
+
+  data.predictions.slice(-5).reverse().forEach(p => {
+    const li = document.createElement("li");
+
+    let icon = "✅", color = "#3ddc97";
+    if (p.decision === "SUSPICIOUS") {
+      icon = "⚠️"; color = "#f6c343";
+    }
+    if (p.decision === "ATTACK") {
+      icon = "🚨"; color = "#ff6b6b";
+    }
+
+    li.innerHTML = `
+      <strong style="color:${color}">
+        ${icon} ${p.decision}
+      </strong>
+      (score: ${p.score.toFixed(2)})<br>
+      <small>${new Date(p.ts * 1000).toLocaleString()}</small>
     `;
-        }
+    list.appendChild(li);
+  });
+}
 
-        async function refreshPredictions() {
-            const res = await fetch(`/api/predictions/${encodeURIComponent(deviceKey)}`);
-            const data = await res.json();
-
-            const list = document.getElementById("predictions");
-            list.innerHTML = "";
-
-            data.predictions.slice().reverse().forEach(p => {
-                const li = document.createElement("li");
-                li.innerHTML = `
-          <b>${p.decision}</b>
-          (score: ${p.score.toFixed(2)})<br>
-          <small>${new Date(p.ts * 1000).toLocaleString()}</small>
-        `;
-                list.appendChild(li);
-            });
-        }
-        
-        refreshDevice();
-        refreshPredictions();
-        setInterval(refreshDevice, 3000);
-        setInterval(refreshPredictions, 3000);
-    </script>
+refreshDevice();
+refreshPredictions();
+setInterval(refreshDevice, 3000);
+setInterval(refreshPredictions, 3000);
+</script>
 
 </body>
-
 </html>

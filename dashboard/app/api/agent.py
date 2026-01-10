@@ -19,8 +19,8 @@ class AgentBind(BaseModel):
     agent_id: str
 
 class DeviceAction(str, Enum):
-    allow = "allow"
     block = "block"
+    quarantine = "quarantine"
 
 @router.post("/agent/hello")
 def agent_hello(payload: AgentHello, request: Request):
@@ -65,13 +65,13 @@ def device_action(device_key: str, action: DeviceAction):
     if not device:
         return {"status": "error", "reason": "device_not_found"}
 
-    if action == DeviceAction.allow:
-        device["approved"] = True
-        device["status"] = "online"
-
-    elif action == DeviceAction.block:
+    if action == DeviceAction.block:
         device["approved"] = False
         device["status"] = "blocked"
+
+    elif action == DeviceAction.quarantine:
+        device["quarantined"] = True
+        device["status"] = "quarantined"
 
     return {
         "status": "ok",
