@@ -24,5 +24,11 @@ class PortalTokenStore:
 
         return data
 
+    def get_by_ip(self, ip: str):
+        for token, data in self._tokens.items():
+            if data["ip"] == ip and time.time() - data["ts"] < TOKEN_TTL:
+                return token
+        return None
+
 
 portal_token_store = PortalTokenStore()

@@ -35,3 +35,11 @@ def portal_success(request: Request):
         "portal_success.html",
         {"request": request}
     )
+
+@router.get("/portal/pending")
+def get_pending_token(request: Request):
+    ip = request.client.host
+    token = portal_token_store.get_by_ip(ip)
+    if not token:
+        return {"token": None}
+    return {"token": token}

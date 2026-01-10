@@ -28,6 +28,8 @@ class NetworkAgent(BaseAgent):
             physical_agent_id=self.agent_id
         )
 
+        self.portal_token = None
+
         self._warned_unknown_ips = set()
         self._warned_blocked_devices = set()
         self._portal_bind_sent = set()
@@ -117,6 +119,7 @@ class NetworkAgent(BaseAgent):
         }
 
     def _on_device_discovered(self, event: DeviceDiscoveredEvent):
+        self._poll_portal_token()
         device_id = self._generate_device_id(event.mac)
 
         created = self.logical_registry.register_device(
@@ -138,28 +141,26 @@ class NetworkAgent(BaseAgent):
                 f"state=NEW"
             )
 
-            portal_token = os.getenv("PORTAL_TOKEN")
-
-            if portal_token and event.mac not in self._portal_bind_sent:
+            if self.portal_token and event.mac not in self._portal_bind_sent:
                 try:
-                    self.dashboard_http.post(
+                    resp = self.dashboard_http.post(
                         "/agent/bind",
                         {
-                            "portal_token": portal_token,
+                            "portal_token": self.portal_token,
                             "mac": event.mac,
                             "agent_id": self.agent_id
                         }
                     )
-                    
                     self._portal_bind_sent.add(event.mac)
-
-                    self.logger.info(
-                        f"PORTAL_BIND_SENT | mac={event.mac}"
-                    )
+                    if resp.get("status") == "approved":
+                        self.portal_token = None
+                        self.logger.info("PORTAL TOKEN CONSUMED")
+                    self.logger.info(f"PORTAL_BIND_SENT | mac={event.mac}")
                 except Exception as e:
                     self.logger.warning(
                         f"PORTAL_BIND_FAILED | mac={event.mac} | {e}"
                     )
+
 
         else:
             self.logger.debug(
@@ -167,6 +168,17 @@ class NetworkAgent(BaseAgent):
             )
 
 
+    def _poll_portal_token(self):
+        if self.portal_token:
+            return
+        try:
+            resp = self.dashboard_http.get("/portal/pending")
+            token = resp.get("token")
+            if token:
+                self.portal_token = token
+                self.logger.info("PORTAL TOKEN AUTO-RECEIVED")
+        except Exception:
+            pass
 
     
     def _start_device_discovery(self):
@@ -298,6 +310,9 @@ class NetworkAgent(BaseAgent):
                     self.send_telemetry(payload)
 
                 self.heartbeat()
+
+                self._poll_portal_token()
+
 
             except Exception as e:
                 self.logger.exception(f"Agent loop error: {e}")

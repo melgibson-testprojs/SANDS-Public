@@ -237,6 +237,9 @@
     🟡 Quarantine
   </button>
   <button class="action-btn danger" onclick="blockDevice()">🚫 Block Device</button>
+  <button class="action-btn primary" onclick="allowDevice()">
+  ✅ Allow Device
+</button>
 </div>
 
 <!-- MAIN CONTENT -->
@@ -289,6 +292,18 @@ async function quarantineDevice() {
   );
 
   alert("Device quarantined");
+  refreshDevice();
+}
+
+async function allowDevice() {
+  if (!confirm("Re-approve this device?")) return;
+
+  await fetch(
+    `/agent/device/${encodeURIComponent(deviceKey)}/allow`,
+    { method: "POST" }
+  );
+
+  alert("Device re-approved");
   refreshDevice();
 }
 

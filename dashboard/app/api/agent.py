@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
+from fastapi import HTTPException
 from enum import Enum
 
 from dashboard.app.services.device_store import device_store
@@ -21,6 +22,7 @@ class AgentBind(BaseModel):
 class DeviceAction(str, Enum):
     block = "block"
     quarantine = "quarantine"
+    allow = "allow" 
 
 @router.post("/agent/hello")
 def agent_hello(payload: AgentHello, request: Request):
@@ -44,7 +46,8 @@ def bind_device(payload: AgentBind, request: Request):
     token_data = portal_token_store.consume(payload.portal_token)
 
     if not token_data:
-        return {"status": "invalid_or_expired_token"}
+        raise HTTPException(status_code=400, detail="Invalid or expired portal token")
+
 
     device = device_store.register(
         mac=payload.mac,
@@ -72,6 +75,11 @@ def device_action(device_key: str, action: DeviceAction):
     elif action == DeviceAction.quarantine:
         device["quarantined"] = True
         device["status"] = "quarantined"
+
+    elif action == DeviceAction.allow:
+        device["approved"] = True
+        device["status"] = "online"
+        device.pop("quarantined", None)
 
     return {
         "status": "ok",
