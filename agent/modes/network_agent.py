@@ -241,6 +241,41 @@ class NetworkAgent(BaseAgent):
         except Exception as e:
             self.logger.debug(f"Approval sync failed: {e}")
 
+    def _try_bind_existing_devices(self):
+        if not self.portal_token:
+            return
+
+        for device_id, device in self.logical_registry.devices.items():
+            if device["state"] != DeviceState.NEW:
+                continue
+
+            mac = device.get("mac")
+            if not mac or mac in self._portal_bind_sent:
+                continue
+
+            try:
+                resp = self.dashboard_http.post(
+                    "/agent/bind",
+                    {
+                        "portal_token": self.portal_token,
+                        "mac": mac,
+                        "agent_id": self.agent_id
+                    }
+                )
+
+                self._portal_bind_sent.add(mac)
+
+                if resp.get("status") == "approved":
+                    self.portal_token = None
+                    self.logger.info(
+                        f"PORTAL_BIND_SUCCESS | mac={mac}"
+                    )
+
+            except Exception as e:
+                self.logger.warning(
+                    f"PORTAL_BIND_FAILED | mac={mac} | {e}"
+                )
+
 
     def run(self):
         self.logger.info("NetworkAgent starting")
@@ -259,12 +294,19 @@ class NetworkAgent(BaseAgent):
         # --- Main control loop ---
         while True:
             try:
+
+                self._poll_portal_token()
+
+                self._try_bind_existing_devices()
+
                 # 🔁 STEP A: sync approval state from dashboard
                 self._sync_approved_devices()
 
                 flow = self._collect_flow()
                 if not flow:
                     continue
+                
+                
 
                 device_id = self.logical_registry.resolve_device(flow["src_ip"])
 
@@ -288,7 +330,6 @@ class NetworkAgent(BaseAgent):
                         self._warned_blocked_devices.add(device_id)
                     continue
 
-
                 features = extract_cic_features(flow)
 
                 payload = {
@@ -310,8 +351,6 @@ class NetworkAgent(BaseAgent):
                     self.send_telemetry(payload)
 
                 self.heartbeat()
-
-                self._poll_portal_token()
 
 
             except Exception as e:
