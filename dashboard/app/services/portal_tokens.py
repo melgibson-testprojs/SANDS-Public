@@ -1,34 +1,40 @@
 import time
-from typing import Dict
+from typing import Dict, List
 
-TOKEN_TTL = 60  # seconds
+TOKEN_TTL = 120  # seconds
 
 class PortalTokenStore:
     def __init__(self):
         self._tokens: Dict[str, dict] = {}
 
-    def create(self, token: str, ip: str):
+    def create(self, token: str):
         self._tokens[token] = {
-            "ip": ip,
-            "ts": time.time()
+            "ts": time.time(),
+            "used": False
         }
 
+    def list_pending(self) -> List[str]:
+        now = time.time()
+        return [
+            token
+            for token, data in self._tokens.items()
+            if not data["used"] and (now - data["ts"]) < TOKEN_TTL
+        ]
+
     def consume(self, token: str):
-        data = self._tokens.pop(token, None)
+        data = self._tokens.get(token)
         if not data:
             return None
 
-        # TTL check
-        if time.time() - data["ts"] > TOKEN_TTL:
+        if data["used"]:
             return None
 
-        return data
+        if time.time() - data["ts"] > TOKEN_TTL:
+            self._tokens.pop(token, None)
+            return None
 
-    def get_by_ip(self, ip: str):
-        for token, data in self._tokens.items():
-            if data["ip"] == ip and time.time() - data["ts"] < TOKEN_TTL:
-                return token
-        return None
+        data["used"] = True
+        return data
 
 
 portal_token_store = PortalTokenStore()
