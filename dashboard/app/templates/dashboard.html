@@ -266,7 +266,7 @@
 
   <!-- 🔧 ACTION BAR -->
   <div class="action-bar">
-    <button class="action-btn primary">🔬 Traffic Analysis</button>
+    <button class="action-btn primary" onclick="openGlobalAnalytics()">🔬 Global Traffic Analysis</button>
     <button class="action-btn">🧠 ML Inspector</button>
     <button class="action-btn">📉 Drift Monitor</button>
     <button class="action-btn danger">🚨 Incident View</button>
@@ -376,6 +376,10 @@
 
     /* -------------------- CHART -------------------- */
     let decisionChart = null;
+
+    function openGlobalAnalytics() {
+      window.open("http://localhost:8501", "_blank");
+    }
 
     async function loadDecisionChart() {
       const res = await fetch("/dashboard/decision_breakdown");
