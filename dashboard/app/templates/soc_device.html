@@ -267,9 +267,13 @@ const deviceKey = "{{ device.key }}";
 /* -------- ACTIONS -------- */
 
 function inspectDevice() {
-  alert("Inspect: Deep analysis (Streamlit / traffic / ML view)");
-  // future:
-  // window.open(`/tools/inspect/${deviceKey}`, "_blank");
+  const mac = deviceKey.replace("mac:", "");
+
+  const url =
+    "http://localhost:8501/Inspect?mac=" +
+    encodeURIComponent(mac);
+
+  window.open(url, "_blank");
 }
 
 async function blockDevice() {

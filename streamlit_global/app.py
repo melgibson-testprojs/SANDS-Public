@@ -149,13 +149,13 @@ st.divider()
 st.subheader("📈 Decision Timeline")
 st.plotly_chart(
     decision_timeline(filtered_df),
-    use_container_width=True,
+    width="stretch",
 )
 
 st.subheader("🔥 Autoencoder Anomaly Trend")
 st.plotly_chart(
     anomaly_trend(filtered_df),
-    use_container_width=True,
+    width="stretch",
 )
 
 col_a, col_b = st.columns(2)
@@ -164,14 +164,14 @@ with col_a:
     st.subheader("🌐 Protocol Distribution")
     st.plotly_chart(
         protocol_distribution(filtered_df),
-        use_container_width=True,
+        width="stretch",
     )
 
 with col_b:
     st.subheader("⚠️ Decision Breakdown")
     st.plotly_chart(
         decision_breakdown(filtered_df),
-        use_container_width=True,
+        width="stretch",
     )
 
 st.divider()
