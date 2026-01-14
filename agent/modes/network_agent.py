@@ -14,6 +14,11 @@ from agent.utils.cic_feature_extractor import extract_cic_features
 from agent.discovery.dhcp_sniffer import DHCPDeviceSniffer
 from agent.discovery.arp_monitor import ARPMonitor
 from agent.discovery.events import DeviceDiscoveredEvent
+from agent.comm.swarm_protocol import (
+    SwarmTopics,
+    SwarmMsgType,
+    SwarmCode
+)
 
 logger = get_logger("network_agent")
 
@@ -285,6 +290,50 @@ class NetworkAgent(BaseAgent):
                         f"PORTAL_BIND_FAILED | token={token} | mac={mac} | {e}"
                     )
 
+    def _on_swarm_alert(self, msg: dict):
+        lid = msg.get("lid")
+        code = msg.get("c")
+        score = float(msg.get("s", 0))
+
+        if not lid:
+            return
+
+        device = self.logical_registry.get_device(lid)
+        if not device:
+            return
+
+        # 🧠 Accumulate swarm risk
+        device["risk"] = device.get("risk", 0.0) + score
+
+        self.logger.info(
+            f"SWARM_ALERT | lid={lid} | code={code} | "
+            f"risk={device['risk']:.2f}"
+        )
+
+        # Local defensive reaction (TEMPORARY)
+        if device["risk"] > 3.0:
+            self.logical_registry.set_state(
+                lid,
+                DeviceState.BLOCKED
+            )
+
+
+    def _on_swarm_command(self, msg: dict):
+        if msg.get("t") != SwarmMsgType.CMD:
+            return
+
+        code = msg.get("c")
+        lid = msg.get("lid")
+
+        self.logger.warning(
+            f"SWARM_COMMAND | code={code} | lid={lid}"
+        )
+
+        if code == SwarmCode.QUARANTINE and lid:
+            self.logical_registry.set_state(
+                lid,
+                DeviceState.BLOCKED
+            )
 
 
     def run(self):
@@ -300,6 +349,26 @@ class NetworkAgent(BaseAgent):
             time.sleep(2)
 
         self.logger.info("Agent successfully registered")
+
+        
+        if self.comm_mqtt:
+            # 🔥 CONNECT TO MQTT BROKER FIRST
+            self.comm_mqtt.connect()
+
+            # Listen to peer alerts
+            self.comm_mqtt.subscribe(
+                SwarmTopics.logical_alerts_all(),
+                self._on_swarm_alert
+            )
+
+            # Listen to commands addressed to me
+            self.comm_mqtt.subscribe(
+                SwarmTopics.agent_commands(self.agent_id),
+                self._on_swarm_command
+            )
+
+            self.logger.info("Swarm subscriptions active")
+
 
         # --- Main control loop ---
         while True:
@@ -366,9 +435,30 @@ class NetworkAgent(BaseAgent):
 
 
                 if self.state == AgentState.REGISTERED:
-                    self.send_telemetry(payload)
+                    resp = self.send_telemetry(payload)
+
+                    # 🐝 SWARM ALERT EMISSION (AFTER ML RESULT)
+                    result = resp.get("prediction", {}) if resp else {}
+
+                    if result.get("final_decision") in ("SUSPICIOUS", "ATTACK"):
+                        swarm_msg = {
+                            "t": SwarmMsgType.WARN,
+                            "c": SwarmCode.ANOM_BEHAV,
+                            "s": float(result.get("reconstruction_error", 0)),
+                            "src": self.agent_id,
+                            "lid": device_id,
+                            "ts": time.time()
+                        }
+
+                        if self.comm_mqtt:
+                            self.comm_mqtt.publish(
+                                SwarmTopics.logical_alerts(device_id),
+                                swarm_msg,
+                                qos=0
+                            )
 
                 self.heartbeat()
+
 
 
             except Exception as e:
