@@ -193,7 +193,26 @@ class NetworkAgent(BaseAgent):
         except Exception:
             return []
 
-    
+    def _notify_dashboard_device_state(self, device_id):
+        device = self.logical_registry.get_device(device_id)
+        if not device:
+            return
+
+        try:
+            self.dashboard_http.post(
+                "/api/devices/state",
+                {
+                    "device_id": device_id,
+                    "agent_id": self.agent_id,
+                    "state": device["state"].value,
+                    "ip": device.get("ip"),
+                    "mac": device.get("mac"),
+                    "risk": device.get("risk", 0.0)
+                }
+            )
+        except Exception:
+            pass
+
     def _start_device_discovery(self):
         """
         Starts background sniffers for device discovery.
@@ -247,6 +266,7 @@ class NetworkAgent(BaseAgent):
                             device_id,
                             DeviceState.APPROVED
                         )
+                        self._notify_dashboard_device_state(device_id)
                 else:
                     if device["state"] == DeviceState.APPROVED:
                         self.logical_registry.set_state(device_id, DeviceState.NEW)
@@ -316,6 +336,7 @@ class NetworkAgent(BaseAgent):
                 lid,
                 DeviceState.BLOCKED
             )
+            self._notify_dashboard_device_state(lid)
 
 
     def _on_swarm_command(self, msg: dict):
@@ -334,6 +355,7 @@ class NetworkAgent(BaseAgent):
                 lid,
                 DeviceState.BLOCKED
             )
+            self._notify_dashboard_device_state(lid)
 
 
     def run(self):

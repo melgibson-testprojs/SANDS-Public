@@ -84,3 +84,10 @@ def recent_events(limit: int = 20):
     events.sort(key=lambda x: x["ts"], reverse=True)
     return events[:limit]
 
+@router.get("/dashboard/topology", response_class=HTMLResponse)
+def topology_view(request: Request):
+    return templates.TemplateResponse(
+        "topology.html",
+        {"request": request}
+    )
+

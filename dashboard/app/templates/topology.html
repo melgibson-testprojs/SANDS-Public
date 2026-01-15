@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SwarmSec – Agent Topology</title>
+
+  <!-- Vis Network (Graph Library) -->
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+  <style>
+    /* ===============================
+       Global Page Styling
+       =============================== */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0b0f1a;
+      color: #eaeaea;
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    header {
+      padding: 14px 20px;
+      background: #11162a;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    header span {
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    /* ===============================
+       Graph Container
+       =============================== */
+    #graph {
+      width: 100vw;
+      height: calc(100vh - 55px);
+    }
+
+    /* ===============================
+       Legend
+       =============================== */
+    .legend {
+      position: absolute;
+      top: 70px;
+      right: 20px;
+      background: rgba(20, 25, 45, 0.95);
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    }
+
+    .legend h4 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .dot.physical { background: #4f8cff; }
+    .dot.approved { background: #3ddc97; }
+    .dot.blocked  { background: #ff4d4d; }
+    .dot.new      { background: #888; }
+
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h2>🕸 SwarmSec – Agent Topology</h2>
+  <span>Live view of physical & logical agents</span>
+</header>
+
+<div id="graph"></div>
+
+<!-- Legend -->
+<div class="legend">
+  <h4>Legend</h4>
+  <div class="legend-item"><div class="dot physical"></div> Physical Agent</div>
+  <div class="legend-item"><div class="dot approved"></div> Approved Device</div>
+  <div class="legend-item"><div class="dot blocked"></div> Blocked Device</div>
+  <div class="legend-item"><div class="dot new"></div> New / Unknown</div>
+</div>
+
+<script>
+/* =====================================================
+   Persistent Vis Network (DO NOT recreate repeatedly)
+   ===================================================== */
+
+let network = null;
+let nodes = new vis.DataSet();
+let edges = new vis.DataSet();
+
+const container = document.getElementById("graph");
+
+network = new vis.Network(
+  container,
+  { nodes, edges },
+  {
+    physics: {
+      stabilization: false,
+      barnesHut: {
+        gravitationalConstant: -3000,
+        springLength: 120
+      }
+    },
+    interaction: {
+      hover: true,
+      navigationButtons: true,
+      keyboard: true
+    }
+  }
+);
+
+/* =====================================================
+   Topology Loader (updates data only)
+   ===================================================== */
+
+async function loadTopology() {
+  try {
+    const res = await fetch("/api/topology");
+    const data = await res.json();
+
+    const nodeItems = data.nodes.map(n => {
+      let color = "#888";
+      let shape = "dot";
+
+      const state = (n.state || "").toString().toUpperCase();
+
+      if (n.type === "physical") {
+        color = "#4f8cff";
+        shape = "box";
+      }
+      else if (state === "APPROVED") {
+        color = "#3ddc97";
+      }
+      else if (state === "BLOCKED") {
+        color = "#ff4d4d";
+      }
+
+      return {
+        id: n.id,
+        label: n.id,
+        shape: shape,
+        color: {
+          background: color,
+          border: "#000"
+        },
+        font: {
+          color: "#fff",
+          size: 12
+        }
+      };
+    });
+
+    const edgeItems = data.edges.map(e => ({
+      from: e.from,
+      to: e.to,
+      arrows: "to",
+      color: "#555"
+    }));
+
+    // 🔥 Correct update pattern
+    nodes.clear();
+    edges.clear();
+    nodes.add(nodeItems);
+    edges.add(edgeItems);
+
+  } catch (err) {
+    console.error("Topology load failed", err);
+  }
+}
+
+// Initial load
+loadTopology();
+
+// Auto-refresh every 5 seconds (safe & simple)
+setInterval(loadTopology, 5000);
+</script>
+
+</body>
+</html>
