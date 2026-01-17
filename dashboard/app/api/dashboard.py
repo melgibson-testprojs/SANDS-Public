@@ -91,3 +91,9 @@ def topology_view(request: Request):
         {"request": request}
     )
 
+@router.get("/dashboard/models", response_class=HTMLResponse)
+def model_management(request: Request):
+    return templates.TemplateResponse(
+        "model_management.html",
+        {"request": request}
+    )

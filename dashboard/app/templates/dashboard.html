@@ -267,7 +267,9 @@
   <!-- 🔧 ACTION BAR -->
   <div class="action-bar">
     <button class="action-btn primary" onclick="openGlobalAnalytics()">🔬 Global Traffic Analysis</button>
-    <button class="action-btn">🧠 ML Inspector</button>
+    <button class="action-btn primary" onclick="window.open('/dashboard/models', '_blank')">
+      🧠 Model Management
+    </button>
     <button class="action-btn primary" onclick="window.location='/dashboard/topology'">
       🕸 Agent Topology
     </button>

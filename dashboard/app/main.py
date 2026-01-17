@@ -9,6 +9,9 @@ from dashboard.app.api.state import router as state_router
 from dashboard.app.api.predictions import router as predictions_router
 from dashboard.app.api.prediction_state import router as prediction_state_router
 from dashboard.app.api.topology import router as topology_router
+from dashboard.app.api import models as models_api
+
+
 
 
 
@@ -22,6 +25,7 @@ app.include_router(state_router)
 app.include_router(predictions_router)
 app.include_router(prediction_state_router)
 app.include_router(topology_router)
+app.include_router(models_api.router)
 
 app.mount(
     "/static",

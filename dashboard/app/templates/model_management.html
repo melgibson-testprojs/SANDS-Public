@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Model Management</title>
+
+  <style>
+    body {
+      background: #0c0f14;
+      color: #e8ebf1;
+      font-family: Inter, system-ui;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: #151a23;
+      border-radius: 12px;
+      padding: 16px;
+      max-width: 520px;
+    }
+
+    .status {
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    .ok { color: #3ddc97; }
+    .warn { color: #f6c343; }
+    .err { color: #ff6b6b; }
+
+    button {
+      margin-top: 14px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      background: #4f8cff;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🧠 Model Management</h1>
+
+<div class="card">
+  <h3>Autoencoder (Incremental Learning)</h3>
+
+  <div id="status" class="status">Checking...</div>
+
+  <button id="trainBtn" disabled onclick="triggerTraining()">
+    Start Incremental Training
+  </button>
+</div>
+
+<script>
+async function loadStatus() {
+  const res = await fetch("/models/ae/status");
+  const data = await res.json();
+
+  const status = document.getElementById("status");
+  const btn = document.getElementById("trainBtn");
+
+  if (data.ready) {
+    status.innerHTML = "✅ Ready for training";
+    status.className = "status ok";
+    btn.disabled = false;
+  } else {
+    status.innerHTML = "⚠️ " + (data.error || data.info);
+    status.className = "status warn";
+    btn.disabled = true;
+  }
+}
+
+function triggerTraining() {
+  alert("Incremental training trigger will be wired next 🔧");
+}
+
+loadStatus();
+</script>
+
+</body>
+</html>

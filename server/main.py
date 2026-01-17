@@ -15,6 +15,7 @@ from fusion.fusion_engine import FusionEngine
 from agent.utils.cic_feature_extractor import FEATURE_NAMES
 from server.logger import get_ids_logger, get_server_logger
 from server.event_emitter import emit_prediction_event
+from server.training.flow_logger import log_flow_for_training
 
 
 # ---------------------------------------------------
@@ -160,6 +161,14 @@ def telemetry(req: TelemetryRequest):
 
     # --- ML INFERENCE ---
     result = FusionEngine.predict(features_vector)
+
+    log_flow_for_training(
+        features=features_vector,
+        result=result,
+        agent_id=req.agent_id,
+        logical_agent_id=req.logical_agent_id,
+    )
+
 
     # -------- IDS LOG ENTRY --------
     ids_logger.info(
