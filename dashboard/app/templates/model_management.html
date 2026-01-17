@@ -5,23 +5,37 @@
 
   <style>
     body {
-      background: #0c0f14;
-      color: #e8ebf1;
-      font-family: Inter, system-ui;
-      padding: 24px;
-    }
+  margin: 0;
+  background: #0c0f14;
+  color: #e8ebf1;
+  font-family: Inter, system-ui;
+}
 
-    h1 {
-      font-size: 24px;
-      margin-bottom: 16px;
-    }
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;      /* vertical centering */
+  justify-content: center;  /* horizontal centering */
+}
 
-    .card {
-      background: #151a23;
-      border-radius: 12px;
-      padding: 16px;
-      max-width: 520px;
-    }
+.container {
+  width: 100%;
+  max-width: 560px;
+  padding: 24px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: #151a23;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+
 
     .status {
       font-size: 16px;
@@ -50,7 +64,8 @@
 </head>
 
 <body>
-
+<div class="page">
+<div class="container">
 <h1>🧠 Model Management</h1>
 
 <div class="card">
@@ -58,35 +73,144 @@
 
   <div id="status" class="status">Checking...</div>
 
+  <div id="trainingStatus"></div>
+  <ul id="candidateList"></ul>
+
   <button id="trainBtn" disabled onclick="triggerTraining()">
     Start Incremental Training
   </button>
 </div>
-
+</div>
+</div>
 <script>
 async function loadStatus() {
-  const res = await fetch("/models/ae/status");
-  const data = await res.json();
+  try {
+    const res = await fetch("/models/ae/status");
 
-  const status = document.getElementById("status");
-  const btn = document.getElementById("trainBtn");
+    if (!res.ok) {
+      throw new Error("HTTP " + res.status);
+    }
 
-  if (data.ready) {
-    status.innerHTML = "✅ Ready for training";
-    status.className = "status ok";
-    btn.disabled = false;
-  } else {
-    status.innerHTML = "⚠️ " + (data.error || data.info);
-    status.className = "status warn";
-    btn.disabled = true;
+    const data = await res.json();
+
+    const statusEl = document.getElementById("status");
+    const btn = document.getElementById("trainBtn");
+
+    if (data.ready) {
+      statusEl.innerHTML = "✅ READY FOR TRAINING";
+      statusEl.className = "status ok";
+      btn.disabled = false;
+    } else {
+      // 🔴 FIX IS HERE
+      const msg =
+        data.error ||        // human-readable backend error
+        data.reason ||       // fallback reason
+        "Waiting for data";  // final fallback
+
+      statusEl.innerHTML = "⚠️ " + msg;
+      statusEl.className = "status warn";
+      btn.disabled = true;
+    }
+
+  } catch (err) {
+    const statusEl = document.getElementById("status");
+    statusEl.innerHTML = "❌ Status error: " + err.message;
+    statusEl.className = "status err";
   }
 }
 
-function triggerTraining() {
-  alert("Incremental training trigger will be wired next 🔧");
+
+
+async function loadTrainingState() {
+  const res = await fetch("/models/ae/status");
+  const data = await res.json();
+
+  document.getElementById("trainingStatus").innerText =
+    "Status: " + (data.ready ? "READY" : "WAITING");
+}
+
+async function loadCandidates() {
+  const res = await fetch("/models/ae/candidates");
+  const runs = await res.json();
+
+  const ul = document.getElementById("candidateList");
+  ul.innerHTML = "";
+
+  runs.forEach(r => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      ${r.run}
+      <button onclick="viewMetrics('${r.run}')">Metrics</button>
+      <button onclick="compare('${r.run}')">Compare</button>
+      <button onclick="promote('${r.run}')">Promote</button>
+    `;
+    ul.appendChild(li);
+  });
+}
+
+async function viewMetrics(run) {
+  const res = await fetch(`/models/ae/candidate/${run}/metrics`);
+  const data = await res.json();
+  alert(JSON.stringify(data, null, 2));
+}
+
+async function promote(run) {
+  if (!confirm("Promote model " + run + "?")) return;
+  const res = await fetch(`/models/ae/promote/${run}`, { method: "POST" });
+  alert("Promoted " + run);
+}
+
+async function compare(run) {
+  const res = await fetch(`/models/ae/compare/${run}`);
+  const data = await res.json();
+
+  alert(
+    `Base error: ${data.base.mean_recon_error}\n` +
+    `Candidate error: ${data.candidate.mean_recon_error}\n` +
+    `Verdict: ${data.verdict}`
+  );
+}
+
+async function triggerTraining() {
+  const btn = document.getElementById("trainBtn");
+  btn.disabled = true;
+  btn.innerText = "Starting training…";
+
+  try {
+    const res = await fetch("/models/ae/train", {
+      method: "POST"
+    });
+
+    if (!res.ok) {
+      throw new Error("HTTP " + res.status);
+    }
+
+    const data = await res.json();
+
+    if (data.status === "started") {
+      alert("✅ Incremental training started in background");
+    } 
+    else if (data.status === "skipped") {
+      alert("⚠️ Training skipped: " + data.reason);
+    } 
+    else {
+      alert("❌ Training error: " + (data.error || "unknown"));
+    }
+
+  } catch (err) {
+    alert("❌ Failed to trigger training: " + err.message);
+  }
+
+  btn.innerText = "Start Incremental Training";
+
+  // Refresh status & candidates after click
+  loadStatus();
+  loadCandidates();
 }
 
 loadStatus();
+loadTrainingState();
+loadCandidates();
 </script>
 
 </body>

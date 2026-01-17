@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from trainer.utils.data_loader import load_logged_flows
-
+import json
+from pathlib import Path
 
 def reconstruction_error(model, X):
     X_hat = model.predict(X, verbose=0)
@@ -29,5 +30,8 @@ def evaluate(base_model_path, candidate_model_path):
         "improved": float(np.percentile(cand_err, 95))
                      < float(np.percentile(base_err, 95)),
     }
+
+    out = Path(candidate_model_path).parent / "metrics.json"
+    out.write_text(json.dumps(metrics, indent=2))
 
     return metrics

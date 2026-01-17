@@ -35,11 +35,12 @@ def build_ae_training_set(
     X_train = X_benign[safe_mask]
 
     return {
-        "X_train": X_train,
+        "ready": True,
         "stats": {
             "total_logged": len(X),
             "benign_total": len(X_benign),
             "used_for_training": len(X_train),
-            "ae_err_pctl": err_threshold,
+            "ae_error_percentile": err_threshold,
         }
     }
+
