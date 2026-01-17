@@ -19,12 +19,18 @@ from agent.comm.swarm_protocol import (
     SwarmMsgType,
     SwarmCode
 )
+from agent.traffic.scapy_flow_collector import ScapyFlowCollector
+
+
 
 logger = get_logger("network_agent")
 
 class NetworkAgent(BaseAgent):
     def __init__(self, config, comm_http, dashboard_http, comm_mqtt=None):
         super().__init__(config, comm_http, comm_mqtt)
+        choice = input("Use Scapy live capture? (y/n): ").strip().lower()
+        self.use_scapy = (choice == "y")
+
         self.dashboard_http = dashboard_http
 
         self.polling_interval = config.polling_interval
@@ -32,6 +38,15 @@ class NetworkAgent(BaseAgent):
         self.logical_registry = LogicalAgentRegistry(
             physical_agent_id=self.agent_id
         )
+
+        self.flow_collector = None
+
+        if self.use_scapy:
+            self.flow_collector = ScapyFlowCollector(
+                iface=self.config.capture_iface
+            )
+
+
 
         #self.portal_token = None
 
@@ -122,6 +137,18 @@ class NetworkAgent(BaseAgent):
                 "dst_to_src": dst_bytes
             }
         }
+
+    def _get_next_flow(self):
+        """
+        Unified flow source:
+        - Scapy (real traffic) OR
+        - Synthetic generator
+        """
+        if self.use_scapy:
+            return self.flow_collector.get_ready_flow()
+        else:
+            return self._collect_flow()
+
 
     def _on_device_discovered(self, event: DeviceDiscoveredEvent):
         #self._poll_portal_token()
@@ -372,7 +399,14 @@ class NetworkAgent(BaseAgent):
 
         self.logger.info("Agent successfully registered")
 
-        
+        if self.use_scapy:
+            self.flow_collector.start()
+            self.logger.info("Scapy flow collector started")
+        else:
+            self.logger.info("Using synthetic flow generator")
+
+
+
         if self.comm_mqtt:
             # 🔥 CONNECT TO MQTT BROKER FIRST
             self.comm_mqtt.connect()
@@ -403,9 +437,14 @@ class NetworkAgent(BaseAgent):
                 # 🔁 STEP A: sync approval state from dashboard
                 self._sync_approved_devices()
 
-                flow = self._collect_flow()
+
+
+                flow = self._get_next_flow()
                 if not flow:
+                    time.sleep(0.01)
                     continue
+
+
                 
                 
 

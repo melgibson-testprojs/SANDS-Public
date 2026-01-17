@@ -1,6 +1,4 @@
-from trainer.ae.build_dataset import build_ae_training_set
+from scapy.all import get_working_ifaces
 
-data = build_ae_training_set(max_percentile=85)
-
-print(data["X_train"].shape)
-print(data["stats"])
+for i in get_working_ifaces():
+    print(f"{i.name}  =>  {i.description}")
