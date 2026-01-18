@@ -5,3 +5,11 @@ logs/
 **/logs/
 log
 *.log
+data/logs/*
+models/*
+!models/README.md
+*.pkl
+*.joblib
+*.onnx
+*.h5
+models/*.bin

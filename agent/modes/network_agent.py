@@ -20,6 +20,10 @@ from agent.comm.swarm_protocol import (
     SwarmCode
 )
 from agent.traffic.scapy_flow_collector import ScapyFlowCollector
+from risk.models import RiskEvent
+from risk import config
+from risk.rules import decide_action
+
 
 
 
@@ -82,12 +86,13 @@ class NetworkAgent(BaseAgent):
 
         dst_ip = "192.0.2.10"
         src_port = random.randint(1024, 65535)
-        dst_port = 80
+        dst_port = random.choice([22, 23, 3389, 4444])
+        #dst_port = 80
 
         src_bytes = 0
         dst_bytes = 0
-        src_cnt = 0
-        dst_cnt = 0
+        src_cnt = 200
+        dst_cnt = 1
 
         for i in range(8):
             ts = now + i * 0.01
@@ -172,6 +177,7 @@ class NetworkAgent(BaseAgent):
                 f"source={event.source} | "
                 f"state=NEW"
             )
+            self._notify_dashboard_device_state(device_id)
 
             # if self.portal_token and event.mac not in self._portal_bind_sent:
             #     try:
@@ -297,6 +303,7 @@ class NetworkAgent(BaseAgent):
                 else:
                     if device["state"] == DeviceState.APPROVED:
                         self.logical_registry.set_state(device_id, DeviceState.NEW)
+                        self._notify_dashboard_device_state(device_id)
 
         except Exception as e:
             self.logger.debug(f"Approval sync failed: {e}")
@@ -350,20 +357,29 @@ class NetworkAgent(BaseAgent):
             return
 
         # 🧠 Accumulate swarm risk
-        device["risk"] = device.get("risk", 0.0) + score
+        risk_engine = device["risk_engine"]
+
+        risk_engine.ingest(RiskEvent(
+            source="swarm",
+            code=code,
+            score=score * config.SWARM_WARN_MULTIPLIER
+        ))
+
+        device["risk"] = risk_engine.state.value
+        self._notify_dashboard_device_state(lid)
 
         self.logger.info(
             f"SWARM_ALERT | lid={lid} | code={code} | "
             f"risk={device['risk']:.2f}"
         )
 
-        # Local defensive reaction (TEMPORARY)
-        if device["risk"] > 3.0:
-            self.logical_registry.set_state(
-                lid,
-                DeviceState.BLOCKED
-            )
-            self._notify_dashboard_device_state(lid)
+        # # Local defensive reaction (TEMPORARY)
+        # if device["risk"] > 3.0:
+        #     self.logical_registry.set_state(
+        #         lid,
+        #         DeviceState.BLOCKED
+        #     )
+        #     self._notify_dashboard_device_state(lid)
 
 
     def _on_swarm_command(self, msg: dict):
@@ -445,9 +461,6 @@ class NetworkAgent(BaseAgent):
                     continue
 
 
-                
-                
-
                 device_id = self.logical_registry.resolve_device(flow["src_ip"])
 
                 if not device_id:
@@ -498,8 +511,48 @@ class NetworkAgent(BaseAgent):
                 if self.state == AgentState.REGISTERED:
                     resp = self.send_telemetry(payload)
 
-                    # 🐝 SWARM ALERT EMISSION (AFTER ML RESULT)
                     result = resp.get("prediction", {}) if resp else {}
+                    
+                    #To test Risk
+                    # result = {
+                    #     "final_decision": "SUSPICIOUS",
+                    #     "reconstruction_error": 999.0
+                    # }
+
+
+                    # 🔑 normalize ML decision (THIS IS THE FIX)
+                    decision = (
+                        result.get("final_decision")
+                        or result.get("decision")
+                        or ""
+                    )
+                    decision = str(decision).upper()
+
+                    risk_engine = device["risk_engine"]
+
+                    if decision == "ATTACK":
+                        risk_engine.ingest(RiskEvent(
+                            source="ml",
+                            code="ATTACK",
+                            score=config.ML_ATTACK_SCORE
+                        ))
+
+                    elif decision == "SUSPICIOUS":
+                        self.logger.warning(
+                            f"ML_SUSPICIOUS_TRIGGERED | device={device_id}"
+                        )
+
+
+                        risk_engine.ingest(RiskEvent(
+                            source="ml",
+                            code="SUSPICIOUS",
+                            score=config.ML_SUSPICIOUS_SCORE
+                        ))
+
+                    # Sync numeric risk
+                    device["risk"] = risk_engine.state.value
+                    self._notify_dashboard_device_state(device_id)
+
 
                     if result.get("final_decision") in ("SUSPICIOUS", "ATTACK"):
                         swarm_msg = {
@@ -520,6 +573,24 @@ class NetworkAgent(BaseAgent):
 
                 self.heartbeat()
 
+                # force decay even if no new events
+                device["risk_engine"].tick()
+                device["risk"] = device["risk_engine"].state.value
+
+                last = device.get("_last_sent_risk")
+                if last is None or abs(device["risk"] - last) >= 0.1:
+                    self._notify_dashboard_device_state(device_id)
+                    device["_last_sent_risk"] = device["risk"]
+
+
+                new_state = decide_action(
+                    device["risk_engine"],
+                    device["state"]
+                )
+
+                if new_state != device["state"]:
+                    self.logical_registry.set_state(device_id, new_state)
+                    self._notify_dashboard_device_state(device_id)
 
 
             except Exception as e:

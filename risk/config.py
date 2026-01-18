@@ -1,0 +1,14 @@
+# Accumulation
+ML_ATTACK_SCORE = 2.0
+ML_SUSPICIOUS_SCORE = 0.7
+SWARM_WARN_MULTIPLIER = 1.2
+
+# Decay
+DECAY_PER_SEC = 0.01     # linear decay
+
+# Thresholds
+QUARANTINE_THRESHOLD = 3.0
+BLOCK_THRESHOLD = 6.0
+
+# Caps
+MAX_RISK = 10.0

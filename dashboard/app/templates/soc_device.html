@@ -330,16 +330,21 @@ async function refreshDevice() {
   `;
 
   // simple risk logic (same as dashboard)
-  let risk = "LOW";
 
-  if (d.status === "blocked") {
-    risk = "HIGH";
-  }
-  if (d.status === "quarantined") {
-    risk = "MED";
+  const riskValue = Number(d.risk ?? 0);
+
+  const riskEl = document.getElementById("risk");
+  riskEl.textContent = riskValue.toFixed(2);
+
+  // Optional color coding (recommended)
+  if (riskValue >= 6) {
+    riskEl.style.color = "#ff6b6b"; // red
+  } else if (riskValue >= 3) {
+    riskEl.style.color = "#f6c343"; // yellow
+  } else {
+    riskEl.style.color = "#3ddc97"; // green
   }
 
-  document.getElementById("risk").textContent = risk;
   document.getElementById("status").textContent = d.status.toUpperCase();
 }
 

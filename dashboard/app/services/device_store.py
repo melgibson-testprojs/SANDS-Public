@@ -23,7 +23,8 @@ class DeviceStore:
                 "agent_id": agent_id,
                 "status": "online",
                 "approved": False,
-                "last_seen": now
+                "last_seen": now,
+                "risk": 0.0
             }
         else:
             d = self.devices[key]

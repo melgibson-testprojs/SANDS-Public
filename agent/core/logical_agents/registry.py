@@ -2,6 +2,7 @@ import threading
 from enum import Enum
 import time
 from agent.core.logger import get_logger
+from risk.engine import RiskEngine
 
 logger = get_logger("logical_registry")
 
@@ -28,6 +29,7 @@ class LogicalAgentRegistry:
         Register a new logical agent if not already known.
         Returns True if created, False if already existed.
         """
+        
         with self._lock:
             if device_id in self.devices:
                 # IP may change over time
@@ -38,16 +40,21 @@ class LogicalAgentRegistry:
                 f"Registering logical agent | "
                 f"device_id={device_id} ip={ip} mac={mac}"
             )
-
+        
             self.devices[device_id] = {
                 "ip": ip,
                 "mac": mac,
                 "hostname": hostname or "UNKNOWN",
                 "state": DeviceState.NEW,
+
+                # 🔐 Risk
                 "risk": 0.0,
+                "risk_engine": RiskEngine(),
+
                 "flows": 0,
                 "first_seen": time.time(),
             }
+
 
             self.ip_index[ip] = device_id
             return True

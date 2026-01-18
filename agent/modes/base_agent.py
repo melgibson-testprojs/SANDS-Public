@@ -80,10 +80,13 @@ class BaseAgent:
 
     def send_telemetry(self, payload):
         try:
-            self.comm_http.send_telemetry(payload)
+            resp = self.comm_http.send_telemetry(payload)
             self.last_successful_contact = time.time()
+            return resp
         except Exception:
             self._handle_backend_failure()
+            return None
+
 
     # ---------------- FAILURE HANDLING ---------------- #
 
