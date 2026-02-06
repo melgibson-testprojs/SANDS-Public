@@ -11,12 +11,13 @@ import shutil
 import time
 import joblib
 
+import threading
 from fusion.fusion_engine import FusionEngine
 from agent.utils.cic_feature_extractor import FEATURE_NAMES
 from server.logger import get_ids_logger, get_server_logger
 from server.event_emitter import emit_prediction_event
 from server.training.flow_logger import log_flow_for_training
-
+from server.scheduler import scheduler_loop
 
 # ---------------------------------------------------
 # LOGGER
@@ -98,6 +99,10 @@ def health():
         "registered_agents": len(AGENTS)
     }
 
+@app.on_event("startup")
+def start_scheduler():
+    t = threading.Thread(target=scheduler_loop, daemon=True)
+    t.start()
 # ---------------------------------------------------
 # AGENT REGISTRATION (D1)
 # ---------------------------------------------------
@@ -235,3 +240,4 @@ async def batch_predict(file: UploadFile = File(...)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+

@@ -74,6 +74,7 @@ h1 {
   <div id="status" class="status">Checking...</div>
 
   <div id="trainingStatus"></div>
+  <div id="countdown" class="status warn" style="margin-top:8px;"></div>
   <ul id="candidateList"></ul>
 
   <button id="trainBtn" disabled onclick="triggerTraining()">
@@ -112,6 +113,10 @@ async function loadStatus() {
       btn.disabled = true;
     }
 
+    if (data.training_state?.next_scheduled_at) {
+      startCountdown(data.training_state.next_scheduled_at);
+    }
+
   } catch (err) {
     const statusEl = document.getElementById("status");
     statusEl.innerHTML = "❌ Status error: " + err.message;
@@ -119,7 +124,38 @@ async function loadStatus() {
   }
 }
 
+let countdownTimer = null;
 
+function formatDuration(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  return `${h.toString().padStart(2, "0")}h `
+       + `${m.toString().padStart(2, "0")}m `
+       + `${s.toString().padStart(2, "0")}s`;
+}
+
+function startCountdown(nextTs) {
+  const el = document.getElementById("countdown");
+
+  if (countdownTimer) clearInterval(countdownTimer);
+
+  function tick() {
+    const now = Date.now() / 1000;
+    const remaining = Math.max(0, nextTs - now);
+
+    if (remaining <= 0) {
+      el.innerHTML = "⏳ Training window reached";
+      return;
+    }
+
+    el.innerHTML =
+      "⏳ Next automatic training in: " + formatDuration(remaining);
+  }
+
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+}
 
 async function loadTrainingState() {
   const res = await fetch("/models/ae/status");
@@ -161,13 +197,14 @@ async function promote(run) {
 }
 
 async function compare(run) {
-  const res = await fetch(`/models/ae/compare/${run}`);
+  const res = await fetch(`/models/ae/report/${run}`);
   const data = await res.json();
 
   alert(
-    `Base error: ${data.base.mean_recon_error}\n` +
-    `Candidate error: ${data.candidate.mean_recon_error}\n` +
-    `Verdict: ${data.verdict}`
+    `Run: ${run}\n` +
+    `Loss Δ: ${data.training.loss_delta}\n` +
+    `Recon Δ: ${data.comparison.delta}\n` +
+    `Recommendation: ${data.recommendation}`
   );
 }
 

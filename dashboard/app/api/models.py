@@ -16,25 +16,57 @@ def read_training_state():
     return {"status": "idle"}
 
 
+# @router.get("/ae/status")
+# def ae_training_status():
+#     from trainer.ae.build_dataset import build_ae_training_set
+
+#     try:
+#         data = build_ae_training_set()
+#         return {
+#             "ready": bool(data.get("ready", False)),
+#             "reason": data.get("reason"),
+#             "stats": data.get("stats"),
+#         }
+
+#     except Exception as e:
+#         return {
+#             "ready": False,
+#             "reason": "status_check_failed",
+#             "error": str(e),
+#             "stats": None,
+#         }
+
 @router.get("/ae/status")
 def ae_training_status():
     from trainer.ae.build_dataset import build_ae_training_set
+    from pathlib import Path
+    import json
+
+    response = {}
 
     try:
         data = build_ae_training_set()
-        return {
+        response.update({
             "ready": bool(data.get("ready", False)),
             "reason": data.get("reason"),
             "stats": data.get("stats"),
-        }
-
+        })
     except Exception as e:
-        return {
+        response.update({
             "ready": False,
             "reason": "status_check_failed",
             "error": str(e),
             "stats": None,
-        }
+        })
+
+    state_file = Path("models/experiments/ae/training_state.json")
+    if state_file.exists():
+        try:
+            response["training_state"] = json.loads(state_file.read_text())
+        except Exception:
+            response["training_state"] = {}
+
+    return response
 
 
 # -------------------------------
@@ -153,3 +185,8 @@ def rollback():
     last = backups[-1]
     shutil.copy(last, AE_BASE)
     return {"status": "rolled_back", "backup": last.name}
+
+@router.get("/ae/report/{run_id}")
+def promotion_report(run_id: str):
+    from trainer.ae.promotion_report import build_promotion_report
+    return build_promotion_report(run_id)
