@@ -1,7 +1,7 @@
 # streamlit_global/pages/Inspect.py
 
 import streamlit as st
-from datetime import datetime
+from datetime import datetime 
 
 from data.ids_log_reader import load_logs
 from analytics.metrics import compute_kpis
@@ -19,7 +19,7 @@ from utils.time_filters import apply_time_filter
 # -------------------------------------------------
 
 st.set_page_config(
-    page_title="SwarmSec – Device Inspect",
+    page_title="SANDS – Device Inspect",
     layout="wide",
 )
 

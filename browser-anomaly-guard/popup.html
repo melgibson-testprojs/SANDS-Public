@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      width: 240px;
+      padding: 12px;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+    }
+
+    .status {
+      font-size: 12px;
+      color: #22c55e;
+      margin-bottom: 8px;
+    }
+
+    .risk {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+
+    .low { color: #22c55e; }
+    .medium { color: #facc15; }
+    .high { color: #ef4444; }
+
+    .metric {
+      font-size: 13px;
+      margin: 4px 0;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 6px;
+      border: none;
+      border-radius: 6px;
+      background: #1f2933;
+      color: #e5e7eb;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #374151;
+    }
+  </style>
+</head>
+<body>
+  <h3>🛡 Browser Anomaly Guard</h3>
+  <div class="status">● Active</div>
+
+  <div id="risk" class="risk">Loading…</div>
+
+  <div class="metric" id="req">Requests: –</div>
+  <div class="metric" id="eval">eval() calls: –</div>
+
+  <button id="view">View Report</button>
+  <button id="reset">Reset Data</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>

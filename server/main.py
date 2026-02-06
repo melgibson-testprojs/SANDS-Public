@@ -44,7 +44,7 @@ EXPECTED_FEATURE_COUNT = len(FEATURE_NAMES)
 # ---------------------------------------------------
 
 app = FastAPI(
-    title="SwarmSec Phase 2.1 IDS Server",
+    title="SwarmSec IDS Server",
     version="2.1",
     description="Unified API using FusionEngine for XGBoost + Autoencoder inference."
 )

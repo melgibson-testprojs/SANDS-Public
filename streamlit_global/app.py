@@ -20,12 +20,12 @@ from utils.time_filters import apply_time_filter
 # -------------------------------------------------
 
 st.set_page_config(
-    page_title="SwarmSec – Global Analytics",
+    page_title="SANDS – Global Analytics",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-st.title("🛡️ SwarmSec – Global Network Analytics")
+st.title("🛡️ SANDS – Global Network Analytics")
 st.caption("Network-wide IDS & ML posture (log-based)")
 
 # -------------------------------------------------
