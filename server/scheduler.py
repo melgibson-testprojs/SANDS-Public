@@ -10,9 +10,6 @@ log = logging.getLogger("scheduler")
 INTERVAL_SECONDS = 3 * 60 * 60  # 3 hours
 STATE_FILE = Path("models/experiments/ae/training_state.json")
 
-INTERVAL_SECONDS = 3 * 60 * 60  # 3 hours
-STATE_FILE = Path("models/experiments/ae/training_state.json")
-
 def update_next_run():
     try:
         state = {}
