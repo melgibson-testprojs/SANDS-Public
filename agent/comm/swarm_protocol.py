@@ -32,6 +32,10 @@ class SwarmMsgType(str, Enum):
     ESCALATE = "ESCALATE"
     CMD = "CMD"
 
+    VOTE_REQ = "VOTE_REQ"
+    VOTE_CAST = "VOTE_CAST"
+    CONSENSUS = "CONSENSUS"
+
 
 class SwarmCode(str, Enum):
     ANOM_BEHAV = "ANOM_BEHAV"

@@ -57,3 +57,6 @@ class RiskEngine:
 
     def should_block(self) -> bool:
         return self.state.value >= config.BLOCK_THRESHOLD
+    
+    def reset(self):
+        self.state.value = 0.0

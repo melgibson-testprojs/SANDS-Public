@@ -97,13 +97,18 @@ class MQTTClient:
         self.client.connect(self.broker, self.port, keepalive=60)
         self.client.loop_start()
 
-    def publish(self, topic: str, payload: dict, qos: int = 0):
+    def publish(self, topic: str, payload: dict, qos: int = 0, retain: bool = False):
         if not _HAS_PAHO:
             logger.info(f"[MQTT-STUB] {topic} -> {payload}")
             return
 
         full_topic = f"{self.topic_prefix}/{topic}"
-        self.client.publish(full_topic, json.dumps(payload), qos=qos, retain=False)
+        self.client.publish(
+            full_topic,
+            json.dumps(payload),
+            qos=qos,
+            retain=retain
+        )
 
     def subscribe(self, topic: str, cb, qos: int = 0):
         if not _HAS_PAHO:
