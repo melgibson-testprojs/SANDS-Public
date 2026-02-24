@@ -41,6 +41,51 @@ SCALER = joblib.load(SCALER_PATH)
 EXPECTED_FEATURE_COUNT = len(FEATURE_NAMES)
 
 # ---------------------------------------------------
+# AUTOENCODER MODEL DISCOVERY + ROTATION
+# ---------------------------------------------------
+
+BASE_AE_PATH = os.path.join("models", "autoencoder_cicids2018.h5")
+AE_EXPERIMENTS_DIR = os.path.join("models", "experiments", "ae")
+
+MODEL_ASSIGNMENTS: Dict[str, str] = {}
+MODEL_ROTATION_COUNTER = 0
+
+
+def discover_autoencoders():
+    models = []
+
+    # Base model first
+    if os.path.exists(BASE_AE_PATH):
+        models.append(("base", BASE_AE_PATH))
+
+    # Incremental runs
+    if os.path.exists(AE_EXPERIMENTS_DIR):
+        def extract_run_number(name):
+            try:
+                return int(name.split("_")[1])
+            except:
+                return 0
+
+        runs = sorted(
+            os.listdir(AE_EXPERIMENTS_DIR),
+            key=extract_run_number,
+            reverse=True   # newest first
+        )
+        
+        for run in runs:
+            model_path = os.path.join(AE_EXPERIMENTS_DIR, run, "autoencoder.h5")
+            if os.path.exists(model_path):
+                models.append((run, model_path))
+
+    return models
+
+
+AVAILABLE_AE_MODELS = discover_autoencoders()
+
+if not AVAILABLE_AE_MODELS:
+    raise RuntimeError("No autoencoder models found.")
+
+# ---------------------------------------------------
 # APP
 # ---------------------------------------------------
 
@@ -72,6 +117,8 @@ class RegisterRequest(BaseModel):
 class RegisterResponse(BaseModel):
     agent_id: str
     token: str
+    model_version: str
+    model_path: str
 
 
 class HeartbeatRequest(BaseModel):
@@ -109,18 +156,44 @@ def start_scheduler():
 
 @app.post("/register", response_model=RegisterResponse)
 def register_agent(req: RegisterRequest):
+    global MODEL_ROTATION_COUNTER
+
     token = f"token-{req.agent_id}"
+
+    # If already assigned → return same version
+    if req.agent_id in MODEL_ASSIGNMENTS:
+        model_version = MODEL_ASSIGNMENTS[req.agent_id]
+    else:
+        index = MODEL_ROTATION_COUNTER % len(AVAILABLE_AE_MODELS)
+        model_version, _ = AVAILABLE_AE_MODELS[index]
+
+        MODEL_ASSIGNMENTS[req.agent_id] = model_version
+        MODEL_ROTATION_COUNTER += 1
+
+    # Resolve model path
+    model_path = None
+    for version, path in AVAILABLE_AE_MODELS:
+        if version == model_version:
+            model_path = path
+            break
 
     AGENTS[req.agent_id] = {
         "capabilities": req.capabilities,
         "token": token,
         "state": "REGISTERED",
-        "last_seen": time.time()
+        "last_seen": time.time(),
+        "model_version": model_version
     }
+
+    server_logger.info(
+        f"MODEL_ASSIGNED | agent={req.agent_id} | version={model_version}"
+    )
 
     return {
         "agent_id": req.agent_id,
-        "token": token
+        "token": token,
+        "model_version": model_version,
+        "model_path": model_path
     }
 
 # ---------------------------------------------------
@@ -165,7 +238,12 @@ def telemetry(req: TelemetryRequest):
     features_vector = features_scaled[0]
 
     # --- ML INFERENCE ---
-    result = FusionEngine.predict(features_vector)
+    model_version = agent.get("model_version", "base")
+
+    result = FusionEngine.predict(
+        features_vector,
+        model_version=model_version
+    )
 
     log_flow_for_training(
         features=features_vector,

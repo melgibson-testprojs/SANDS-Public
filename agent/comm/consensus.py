@@ -44,3 +44,6 @@ class VoteStore:
         if not entry:
             return 0
         return len(entry["voters"])
+    
+    def clear_votes(self, target_id):
+        self.votes.pop(target_id, None)

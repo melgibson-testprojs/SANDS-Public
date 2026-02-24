@@ -1,5 +1,6 @@
 # fusion/fusion_engine.py
-
+import os
+import json
 import numpy as np
 from functools import lru_cache
 from typing import Dict, List, Union
@@ -13,7 +14,9 @@ from project_settings import (
 # CONFIG
 # ============================================================
 
-AE_THRESHOLD = 96.36818779649906
+AE_THRESHOLD = 0.32
+BASE_AE_PATH = os.path.join("models", "autoencoder_cicids2018.h5")
+AE_EXPERIMENTS_DIR = os.path.join("models", "experiments", "ae")
 
 # ============================================================
 # MODEL LOADING (cached)
@@ -24,9 +27,35 @@ def get_xgb_model():
     return load_joblib_safe("xgb_model.pkl")
 
 
-@lru_cache()
-def get_autoencoder():
-    return load_keras_safe("autoencoder_cicids2018.h5")
+@lru_cache(maxsize=16)
+def get_autoencoder(version: str):
+    if version == "base":
+        model = load_keras_safe("autoencoder_cicids2018.h5")
+        threshold = 0.32 #fake
+        return model, threshold
+
+    # incremental runs
+    metrics_path = os.path.join(AE_EXPERIMENTS_DIR, version, "metrics.json")
+
+    relative_path = os.path.join(
+        "experiments",
+        "ae",
+        version,
+        "autoencoder.h5"
+    )
+
+    model = load_keras_safe(relative_path)
+
+    if model is None:
+        raise RuntimeError(f"Failed to load autoencoder: {relative_path}")
+
+    threshold = 0.32
+    if os.path.exists(metrics_path):
+        with open(metrics_path, "r") as f:
+            metrics = json.load(f)
+            threshold = metrics.get("threshold", threshold)
+
+    return model, threshold
 
 # ============================================================
 # HELPER FUNCTIONS
@@ -70,36 +99,37 @@ class FusionEngine:
     """
 
     @staticmethod
-    def predict(features: Union[List[float], np.ndarray]) -> Dict:
+    def predict(features: Union[List[float], np.ndarray], model_version: str = "base") -> Dict:
         X = _ensure_2d(features)
 
         xgb = get_xgb_model()
-        ae = get_autoencoder()
+        ae, threshold = get_autoencoder(model_version)
 
         # Supervised prediction
         xgb_raw = xgb.predict(X)[0]
         label = _supervised_label(int(xgb_raw))
 
         # Autoencoder reconstruction error
-        X_reconstructed = ae.predict(X)
+        X_reconstructed = ae.predict(X, verbose=0)
         mse = float(np.mean((X - X_reconstructed) ** 2))
+        ae_flag = "ANOMALY" if mse > threshold else "NORMAL"
 
-        ae_flag = _ae_flag(mse)
         final_decision = _fusion_decision(label, ae_flag)
 
         return {
             "supervised_pred": label,
             "autoencoder_flag": ae_flag,
             "reconstruction_error": mse,
-            "final_decision": final_decision
+            "final_decision": final_decision,
+            "model_version": model_version
         }
 
     @staticmethod
-    def batch_predict(batch_features: Union[List[List[float]], np.ndarray]) -> List[Dict]:
+    def batch_predict(batch_features: Union[List[List[float]], np.ndarray], model_version: str = "base") -> List[Dict]:
         X = _ensure_2d(batch_features)
 
         xgb = get_xgb_model()
-        ae = get_autoencoder()
+        ae, threshold = get_autoencoder(model_version)
 
         xgb_raw = xgb.predict(X)
         X_reconstructed = ae.predict(X)
@@ -109,7 +139,7 @@ class FusionEngine:
 
         for i in range(len(X)):
             label = _supervised_label(int(xgb_raw[i]))
-            ae_flag = _ae_flag(float(mse_arr[i]))
+            ae_flag = "ANOMALY" if mse_arr[i] > threshold else "NORMAL"
             final = _fusion_decision(label, ae_flag)
 
             results.append({

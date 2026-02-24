@@ -74,6 +74,7 @@ class NetworkAgent(BaseAgent):
         self.leader.register_agent(self.agent_id)
         self._last_swarm_status_log = 0
         self._swarm_status_interval = 30
+        self.active_votes = {}  
 
     def _pick_known_device_ip(self):
         """
@@ -376,6 +377,31 @@ class NetworkAgent(BaseAgent):
                         f"PORTAL_BIND_FAILED | token={token} | mac={mac} | {e}"
                     )
 
+    def _compute_swarm_risk(self, mse: float) -> float:
+        """
+        Convert reconstruction error into normalized swarm risk.
+        Uses log compression to handle large anomaly values.
+        """
+
+        from fusion.fusion_engine import AE_THRESHOLD
+
+        if mse <= AE_THRESHOLD:
+            return 0.0
+
+        excess = mse - AE_THRESHOLD
+
+        # Log compression
+        normalized = math.log1p(excess)
+
+        # Assume 50 is strong anomaly upper bound
+        normalized = normalized / math.log1p(50)
+
+        normalized = min(normalized, 1.0)
+
+        MAX_SWARM_EVENT_RISK = 0.8
+
+        return normalized * MAX_SWARM_EVENT_RISK
+
     def _on_swarm_alert(self, msg: dict):
         lid = msg.get("lid")
         code = msg.get("c")
@@ -391,10 +417,12 @@ class NetworkAgent(BaseAgent):
         # 🧠 Accumulate swarm risk
         risk_engine = device["risk_engine"]
 
+        swarm_risk = self._compute_swarm_risk(float(score))
+
         risk_engine.ingest(RiskEvent(
             source="swarm",
             code=code,
-            score=score * config.SWARM_WARN_MULTIPLIER
+            score=swarm_risk
         ))
 
         device["risk"] = risk_engine.state.value
@@ -498,6 +526,9 @@ class NetworkAgent(BaseAgent):
                 vote_msg
             )
     
+    def clear_votes(self, target_id):
+        self.votes.pop(target_id, None)
+
     def _handle_vote_cast(self, msg: dict):
         if not self.leader.is_leader():
             return
@@ -511,6 +542,18 @@ class NetworkAgent(BaseAgent):
 
         total_agents = len(self.leader.known_agents)
         quorum = math.ceil(total_agents * 0.6)
+
+        #session for active votes
+        if target_id not in self.active_votes:
+            self.active_votes[target_id] = {
+                "finalized": False
+            }
+
+        vote_session = self.active_votes[target_id]
+
+        # 🔒 If already finalized → ignore
+        if vote_session["finalized"]:
+            return
 
         current_votes = self.vote_store.get_vote_count(target_id)
 
@@ -529,6 +572,9 @@ class NetworkAgent(BaseAgent):
         )
 
         if reached:
+            # 🔒 LOCK IT (THIS IS THE FIX)
+            vote_session["finalized"] = True
+
             self.logger.warning(
                 f"CONSENSUS_REACHED | "
                 f"leader={self.agent_id} | "
@@ -563,11 +609,16 @@ class NetworkAgent(BaseAgent):
             remaining = int(self._vote_cooldown_secs - (now - last_vote))
             self.logger.warning(
                 f"VOTE_CANCELLED | target={target_id} | "
-                f"reason = Device on cooldown | retry_in={remaining}s"
+                f"reason=Device on cooldown | retry_in={remaining}s"
             )
             return
 
-        # Record vote time
+        # Initialize vote session only once
+        if target_id not in self.active_votes:
+            self.active_votes[target_id] = {
+                "finalized": False
+            }
+
         self._vote_cooldown[target_id] = now
 
         payload = {
@@ -584,10 +635,8 @@ class NetworkAgent(BaseAgent):
         )
 
         self.logger.info(
-            f"VOTE_REQ_SENT | "
-            f"initiator={self.agent_id} | "
-            f"target={target_id} | "
-            f"type={target_type}"
+            f"VOTE_REQ_SENT | initiator={self.agent_id} | "
+            f"target={target_id} | type={target_type}"
         )
 
     def _handle_consensus(self, msg: dict):
@@ -597,24 +646,38 @@ class NetworkAgent(BaseAgent):
         target_id = msg.get("target_id")
         target_type = msg.get("target_type")
 
+        if not target_id:
+            return
+
         if target_type == "device":
             device = self.logical_registry.get_device(target_id)
-            if device:
-                self.logical_registry.set_state(
-                    target_id,
-                    DeviceState.BLOCKED
-                )
-                self._notify_dashboard_device_state(target_id)
+            if not device:
+                return
+
+            # 🔒 Prevent duplicate application
+            if device["state"] == DeviceState.BLOCKED:
+                return
+
+            self.logical_registry.set_state(
+                target_id,
+                DeviceState.BLOCKED
+            )
+            self._notify_dashboard_device_state(target_id)
 
         elif target_type == "ip":
+            if target_id in self.blocked_ips:
+                return
             self.blocked_ips.add(target_id)
+
+        # 🧹 Clean vote session
+        self.active_votes.pop(target_id, None)
+        self.vote_store.clear_votes(target_id)
 
         self.logger.warning(
             f"CONSENSUS_APPLIED | "
             f"decided_by={msg.get('src')} | "
             f"target={target_id} | "
-            f"type={target_type} | "
-            f"action=BLOCK"
+            f"type={target_type} | action=BLOCK"
         )
 
     def run(self):
@@ -772,7 +835,7 @@ class NetworkAgent(BaseAgent):
                     #To test Risk
                     result = {
                         "final_decision": "SUSPICIOUS",
-                        "reconstruction_error": 999.0
+                        "reconstruction_error": 299.0
                     }
 
 
@@ -838,6 +901,21 @@ class NetworkAgent(BaseAgent):
                     self._notify_dashboard_device_state(device_id)
                     device["_last_sent_risk"] = device["risk"]
 
+                RAILGUARD_THRESHOLD = 8.0
+
+                if device["risk"] >= RAILGUARD_THRESHOLD:
+                    self.logger.warning(
+                        f"RAILGUARD_TRIGGERED | device={device_id} | risk={device['risk']:.2f}"
+                    )
+
+                    self.logical_registry.set_state(
+                        device_id,
+                        DeviceState.BLOCKED
+                    )
+
+                    self._notify_dashboard_device_state(device_id)
+
+                    continue
 
                 new_state = decide_action(
                     device["risk_engine"],

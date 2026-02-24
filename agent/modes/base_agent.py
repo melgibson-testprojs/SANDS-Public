@@ -42,6 +42,11 @@ class BaseAgent:
                     if self.comm_mqtt:
                         self.comm_mqtt.token = token
 
+                self.model_version = resp.get("model_version", "base")
+                self.model_path = resp.get("model_path")
+
+                logger.info(f"MODEL_ASSIGNED | version={self.model_version}")
+
                 self.state = AgentState.REGISTERED
                 self.last_successful_contact = time.time()
                 self._retry_backoff = 1.0
