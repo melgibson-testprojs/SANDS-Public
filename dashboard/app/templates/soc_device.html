@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>SOC Device View</title>
   <link rel="stylesheet" href="/static/style.css">
@@ -24,7 +25,7 @@
       --radius-lg: 16px;
       --radius-md: 12px;
 
-      --shadow-soft: 0 8px 30px rgba(0,0,0,0.45);
+      --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.45);
     }
 
     * {
@@ -74,11 +75,9 @@
     }
 
     .summary-card {
-      background: linear-gradient(
-        180deg,
-        var(--card-bg),
-        var(--card-bg-soft)
-      );
+      background: linear-gradient(180deg,
+          var(--card-bg),
+          var(--card-bg-soft));
       border-radius: var(--radius-lg);
       padding: 20px;
       box-shadow: var(--shadow-soft);
@@ -146,11 +145,9 @@
       PANELS / CARDS
     ========================= */
     .panel {
-      background: linear-gradient(
-        180deg,
-        var(--card-bg),
-        var(--card-bg-soft)
-      );
+      background: linear-gradient(180deg,
+          var(--card-bg),
+          var(--card-bg-soft));
       border-radius: var(--radius-lg);
       padding: 20px;
       box-shadow: var(--shadow-soft);
@@ -168,7 +165,7 @@
     .events li {
       font-size: 12px;
       padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
       color: var(--text-muted);
     }
 
@@ -202,186 +199,196 @@
     a:hover {
       text-decoration: underline;
     }
-    </style>
+  </style>
 
 </head>
 
 <body>
 
-<h1>🖥️ <span>Device SOC View</span></h1>
-
-<!-- DEVICE SUMMARY -->
-<div class="summary">
-  <div class="summary-card">
-    <small>Device</small>
-    <b>{{ device.key }}</b>
-  </div>
-  <div class="summary-card">
-    <small>Status</small>
-    <b id="status">–</b>
-  </div>
-  <div class="summary-card">
-    <small>Risk</small>
-    <b id="risk">–</b>
-  </div>
-  <div class="summary-card">
-    <small>Last Seen</small>
-    <b id="lastSeen">–</b>
-  </div>
-</div>
-
-<!-- ACTION BAR -->
-<div class="action-bar">
-  <button class="action-btn" onclick="inspectDevice()">🔍 Inspect</button>
-  <button class="action-btn" style="color:#f6c343" onclick="quarantineDevice()">
-    🟡 Quarantine
-  </button>
-  <button class="action-btn danger" onclick="blockDevice()">🚫 Block Device</button>
-  <button class="action-btn primary" onclick="allowDevice()">
-  ✅ Allow Device
-</button>
-</div>
-
-<!-- MAIN CONTENT -->
-<div class="layout">
-
-  <!-- LEFT: DEVICE DETAILS -->
-  <div class="panel">
-    <h2>Device Details</h2>
-    <ul id="details" class="events"></ul>
+  <div style="position: absolute; top: 20px; right: 28px; display: flex; align-items: center; gap: 15px;">
+    <div style="text-align: right;">
+      <div style="font-size: 13px; font-weight: 600;">{{ user }}</div>
+      <div style="font-size: 11px; color: var(--accent-blue); text-transform: uppercase;">{{ role }} Access</div>
+    </div>
+    <a href="/logout" class="action-btn"
+      style="text-decoration: none; padding: 8px 14px; background: rgba(255,107,107,0.1); color: var(--accent-red); border: 1px solid rgba(255,107,107,0.2);">Logout</a>
   </div>
 
-  <!-- RIGHT: RECENT PREDICTIONS -->
-  <div class="panel">
-    <h2>Recent Predictions</h2>
-    <ul id="predictions" class="events"></ul>
+  <h1>🖥️ <span>Device SOC View</span></h1>
+
+  <!-- DEVICE SUMMARY -->
+  <div class="summary">
+    <div class="summary-card">
+      <small>Device</small>
+      <b>{{ device.key }}</b>
+    </div>
+    <div class="summary-card">
+      <small>Status</small>
+      <b id="status">–</b>
+    </div>
+    <div class="summary-card">
+      <small>Risk</small>
+      <b id="risk">–</b>
+    </div>
+    <div class="summary-card">
+      <small>Last Seen</small>
+      <b id="lastSeen">–</b>
+    </div>
   </div>
 
-</div>
+  <!-- ACTION BAR -->
+  <div class="action-bar">
+    <button class="action-btn" onclick="inspectDevice()">🔍 Inspect</button>
+    <button class="action-btn" style="color:#f6c343" onclick="quarantineDevice()">
+      🟡 Quarantine
+    </button>
+    <button class="action-btn danger" onclick="blockDevice()">🚫 Block Device</button>
+    <button class="action-btn primary" onclick="allowDevice()">
+      ✅ Allow Device
+    </button>
+  </div>
 
-<a href="/dashboard" style="color:var(--accent-blue)">⬅ Back to Dashboard</a>
+  <!-- MAIN CONTENT -->
+  <div class="layout">
 
-<script>
-const deviceKey = "{{ device.key }}";
+    <!-- LEFT: DEVICE DETAILS -->
+    <div class="panel">
+      <h2>Device Details</h2>
+      <ul id="details" class="events"></ul>
+    </div>
 
-/* -------- ACTIONS -------- */
+    <!-- RIGHT: RECENT PREDICTIONS -->
+    <div class="panel">
+      <h2>Recent Predictions</h2>
+      <ul id="predictions" class="events"></ul>
+    </div>
 
-function inspectDevice() {
-  const mac = deviceKey.replace("mac:", "");
+  </div>
 
-  const url =
-    "http://localhost:8501/Inspect?mac=" +
-    encodeURIComponent(mac);
+  <a href="/dashboard" style="color:var(--accent-blue)">⬅ Back to Dashboard</a>
 
-  window.open(url, "_blank");
-}
+  <script>
+    const deviceKey = "{{ device.key }}";
 
-async function blockDevice() {
-  if (!confirm("Block this device? This will stop telemetry.")) return;
+    /* -------- ACTIONS -------- */
 
-  await fetch(`/agent/device/${encodeURIComponent(deviceKey)}/block`, {
-    method: "POST"
-  });
+    function inspectDevice() {
+      const mac = deviceKey.replace("mac:", "");
 
-  alert("Device blocked");
-  refreshDevice();
-}
+      const url =
+        "http://localhost:8501/Inspect?mac=" +
+        encodeURIComponent(mac);
 
-async function quarantineDevice() {
-  if (!confirm("Quarantine this device? It will remain monitored.")) return;
+      window.open(url, "_blank");
+    }
 
-  await fetch(
-    `/agent/device/${encodeURIComponent(deviceKey)}/quarantine`,
-    { method: "POST" }
-  );
+    async function blockDevice() {
+      if (!confirm("Block this device? This will stop telemetry.")) return;
 
-  alert("Device quarantined");
-  refreshDevice();
-}
+      await fetch(`/agent/device/${encodeURIComponent(deviceKey)}/block`, {
+        method: "POST"
+      });
 
-async function allowDevice() {
-  if (!confirm("Re-approve this device?")) return;
+      alert("Device blocked");
+      refreshDevice();
+    }
 
-  await fetch(
-    `/agent/device/${encodeURIComponent(deviceKey)}/allow`,
-    { method: "POST" }
-  );
+    async function quarantineDevice() {
+      if (!confirm("Quarantine this device? It will remain monitored.")) return;
 
-  alert("Device re-approved");
-  refreshDevice();
-}
+      await fetch(
+        `/agent/device/${encodeURIComponent(deviceKey)}/quarantine`,
+        { method: "POST" }
+      );
 
-/* -------- DATA -------- */
+      alert("Device quarantined");
+      refreshDevice();
+    }
 
-async function refreshDevice() {
-  const res = await fetch("/api/state");
-  const data = await res.json();
-  const d = data.devices.find(x => x.key === deviceKey);
-  if (!d) return;
+    async function allowDevice() {
+      if (!confirm("Re-approve this device?")) return;
 
-  document.getElementById("status").textContent = d.status.toUpperCase();
-  document.getElementById("lastSeen").textContent =
-    new Date(d.last_seen * 1000).toLocaleTimeString();
+      await fetch(
+        `/agent/device/${encodeURIComponent(deviceKey)}/allow`,
+        { method: "POST" }
+      );
 
-  document.getElementById("details").innerHTML = `
+      alert("Device re-approved");
+      refreshDevice();
+    }
+
+    /* -------- DATA -------- */
+
+    async function refreshDevice() {
+      const res = await fetch("/api/state");
+      const data = await res.json();
+      const d = data.devices.find(x => x.key === deviceKey);
+      if (!d) return;
+
+      document.getElementById("status").textContent = d.status.toUpperCase();
+      document.getElementById("lastSeen").textContent =
+        new Date(d.last_seen * 1000).toLocaleTimeString();
+
+      document.getElementById("details").innerHTML = `
     <li>IP: ${d.ip || "-"}</li>
     <li>MAC: ${d.mac || "unknown"}</li>
     <li>Approved: ${d.approved}</li>
   `;
 
-  // simple risk logic (same as dashboard)
+      // simple risk logic (same as dashboard)
 
-  const riskValue = Number(d.risk ?? 0);
+      const riskValue = Number(d.risk ?? 0);
 
-  const riskEl = document.getElementById("risk");
-  riskEl.textContent = riskValue.toFixed(2);
+      const riskEl = document.getElementById("risk");
+      riskEl.textContent = riskValue.toFixed(2);
 
-  // Optional color coding (recommended)
-  if (riskValue >= 6) {
-    riskEl.style.color = "#ff6b6b"; // red
-  } else if (riskValue >= 3) {
-    riskEl.style.color = "#f6c343"; // yellow
-  } else {
-    riskEl.style.color = "#3ddc97"; // green
-  }
+      // Optional color coding (recommended)
+      if (riskValue >= 6) {
+        riskEl.style.color = "#ff6b6b"; // red
+      } else if (riskValue >= 3) {
+        riskEl.style.color = "#f6c343"; // yellow
+      } else {
+        riskEl.style.color = "#3ddc97"; // green
+      }
 
-  document.getElementById("status").textContent = d.status.toUpperCase();
-}
-
-async function refreshPredictions() {
-  const res = await fetch(`/api/predictions/${encodeURIComponent(deviceKey)}`);
-  const data = await res.json();
-
-  const list = document.getElementById("predictions");
-  list.innerHTML = "";
-
-  data.predictions.slice(-5).reverse().forEach(p => {
-    const li = document.createElement("li");
-
-    let icon = "✅", color = "#3ddc97";
-    if (p.decision === "SUSPICIOUS") {
-      icon = "⚠️"; color = "#f6c343";
-    }
-    if (p.decision === "ATTACK") {
-      icon = "🚨"; color = "#ff6b6b";
+      document.getElementById("status").textContent = d.status.toUpperCase();
     }
 
-    li.innerHTML = `
+    async function refreshPredictions() {
+      const res = await fetch(`/api/predictions/${encodeURIComponent(deviceKey)}`);
+      const data = await res.json();
+
+      const list = document.getElementById("predictions");
+      list.innerHTML = "";
+
+      data.predictions.slice(-5).reverse().forEach(p => {
+        const li = document.createElement("li");
+
+        let icon = "✅", color = "#3ddc97";
+        if (p.decision === "SUSPICIOUS") {
+          icon = "⚠️"; color = "#f6c343";
+        }
+        if (p.decision === "ATTACK") {
+          icon = "🚨"; color = "#ff6b6b";
+        }
+
+        li.innerHTML = `
       <strong style="color:${color}">
         ${icon} ${p.decision}
       </strong>
       (score: ${p.score.toFixed(2)})<br>
       <small>${new Date(p.ts * 1000).toLocaleString()}</small>
     `;
-    list.appendChild(li);
-  });
-}
+        list.appendChild(li);
+      });
+    }
 
-refreshDevice();
-refreshPredictions();
-setInterval(refreshDevice, 3000);
-setInterval(refreshPredictions, 3000);
-</script>
+    refreshDevice();
+    refreshPredictions();
+    setInterval(refreshDevice, 3000);
+    setInterval(refreshPredictions, 3000);
+  </script>
 
 </body>
+
 </html>

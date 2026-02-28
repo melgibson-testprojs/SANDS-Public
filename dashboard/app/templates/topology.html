@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>SANDS – Agent Topology</title>
 
-  <!-- Vis Network (Graph Library) -->
+  <!-- Vis Network (Stable Graph Library) -->
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 
   <style>
@@ -16,11 +17,14 @@
       padding: 0;
       background: #0b0f1a;
       color: #eaeaea;
-      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     header {
-      padding: 14px 20px;
+      padding: 16px 24px;
       background: #11162a;
       border-bottom: 1px solid #222;
       display: flex;
@@ -28,23 +32,48 @@
       justify-content: space-between;
     }
 
-    header h2 {
+    .header-info h2 {
       margin: 0;
       font-size: 18px;
       font-weight: 600;
+      color: #4f8cff;
     }
 
-    header span {
-      font-size: 13px;
+    .header-info span {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .back-btn {
       color: #aaa;
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 12px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+      background: #1a1f35;
+      color: #fff;
     }
 
     /* ===============================
-       Graph Container
+       Main Layout
        =============================== */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
     #graph {
-      width: 100vw;
-      height: calc(100vh - 55px);
+      flex: 1;
+      width: 100%;
+      height: 100%;
     }
 
     /* ===============================
@@ -52,19 +81,23 @@
        =============================== */
     .legend {
       position: absolute;
-      top: 70px;
-      right: 20px;
-      background: rgba(20, 25, 45, 0.95);
-      padding: 12px 14px;
-      border-radius: 6px;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(15, 20, 35, 0.9);
+      padding: 14px;
+      border-radius: 8px;
       font-size: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      border: 1px solid #222;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      z-index: 10;
     }
 
-    .legend h4 {
-      margin: 0 0 8px;
-      font-size: 13px;
-      font-weight: 600;
+    .legend-title {
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #666;
     }
 
     .legend-item {
@@ -80,127 +113,142 @@
       margin-right: 8px;
     }
 
-    .dot.physical { background: #4f8cff; }
-    .dot.approved { background: #3ddc97; }
-    .dot.blocked  { background: #ff4d4d; }
-    .dot.new      { background: #888; }
+    .dot.physical {
+      background: #4f8cff;
+      border-radius: 2px;
+    }
 
+    .dot.secure {
+      background: #3ddc97;
+    }
+
+    .dot.warning {
+      background: #f59e0b;
+    }
+
+    .dot.critical {
+      background: #ff4d4d;
+    }
   </style>
 </head>
 
 <body>
 
-<header>
-  <h2>SANDS – Agent Topology</h2>
-  <span>Live view of physical & logical agents</span>
-</header>
+  <header>
+    <div class="header-info">
+      <h2>SANDS – Agent Topology</h2>
+      <span>Real-time swarm infrastructure mapping</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <div style="text-align: right;">
+        <div style="font-size: 13px; font-weight: 600;">{{ user }}</div>
+        <div style="font-size: 11px; color: #4f8cff; text-transform: uppercase;">{{ role }} Access</div>
+      </div>
+      <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+      <a href="/logout" class="back-btn" style="border-color: #ff4d4d; color: #ff4d4d;">Logout</a>
+    </div>
+  </header>
 
-<div id="graph"></div>
+  <main>
+    <div id="graph"></div>
 
-<!-- Legend -->
-<div class="legend">
-  <h4>Legend</h4>
-  <div class="legend-item"><div class="dot physical"></div> Physical Agent</div>
-  <div class="legend-item"><div class="dot approved"></div> Approved Device</div>
-  <div class="legend-item"><div class="dot blocked"></div> Blocked Device</div>
-  <div class="legend-item"><div class="dot new"></div> New / Unknown</div>
-</div>
+    <div class="legend">
+      <div class="legend-title">Legend</div>
+      <div class="legend-item">
+        <div class="dot physical"></div> Physical Agent
+      </div>
+      <div class="legend-item">
+        <div class="dot secure"></div> Secure Device
+      </div>
+      <div class="legend-item">
+        <div class="dot warning"></div> Elevated Risk
+      </div>
+      <div class="legend-item">
+        <div class="dot critical"></div> Critical Threat
+      </div>
+    </div>
+  </main>
 
-<script>
-/* =====================================================
-   Persistent Vis Network (DO NOT recreate repeatedly)
-   ===================================================== */
+  <script>
+    let network = null;
+    let nodes = new vis.DataSet();
+    let edges = new vis.DataSet();
 
-let network = null;
-let nodes = new vis.DataSet();
-let edges = new vis.DataSet();
+    const container = document.getElementById("graph");
 
-const container = document.getElementById("graph");
-
-network = new vis.Network(
-  container,
-  { nodes, edges },
-  {
-    physics: {
-      stabilization: false,
-      barnesHut: {
-        gravitationalConstant: -3000,
-        springLength: 120
-      }
-    },
-    interaction: {
-      hover: true,
-      navigationButtons: true,
-      keyboard: true
-    }
-  }
-);
-
-/* =====================================================
-   Topology Loader (updates data only)
-   ===================================================== */
-
-async function loadTopology() {
-  try {
-    const res = await fetch("/api/topology");
-    const data = await res.json();
-
-    const nodeItems = data.nodes.map(n => {
-      let color = "#888";
-      let shape = "dot";
-
-      const state = (n.state || "").toString().toUpperCase();
-
-      if (n.type === "physical") {
-        color = "#4f8cff";
-        shape = "box";
-      }
-      else if (state === "APPROVED") {
-        color = "#3ddc97";
-      }
-      else if (state === "BLOCKED") {
-        color = "#ff4d4d";
-      }
-
-      return {
-        id: n.id,
-        label: n.id,
-        shape: shape,
-        color: {
-          background: color,
-          border: "#000"
-        },
-        font: {
-          color: "#fff",
-          size: 12
+    const options = {
+      nodes: {
+        font: { color: '#ffffff', size: 12 },
+        borderWidth: 2,
+      },
+      edges: {
+        color: '#444',
+        arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+      },
+      physics: {
+        stabilization: false,
+        barnesHut: {
+          gravitationalConstant: -2000,
+          springLength: 100
         }
-      };
-    });
+      }
+    };
 
-    const edgeItems = data.edges.map(e => ({
-      from: e.from,
-      to: e.to,
-      arrows: "to",
-      color: "#555"
-    }));
+    network = new vis.Network(container, { nodes, edges }, options);
 
-    // 🔥 Correct update pattern
-    nodes.clear();
-    edges.clear();
-    nodes.add(nodeItems);
-    edges.add(edgeItems);
+    async function loadTopology() {
+      try {
+        const res = await fetch("/api/topology");
+        const data = await res.json();
 
-  } catch (err) {
-    console.error("Topology load failed", err);
-  }
-}
+        const nodeItems = data.nodes.map(n => {
+          let color = "#3ddc97"; // Default secure
+          let shape = "dot";
+          let risk = parseFloat(n.risk || 0);
 
-// Initial load
-loadTopology();
+          if (n.type === "physical") {
+            color = "#4f8cff";
+            shape = "box";
+          } else {
+            // Risk-based coloring
+            if (risk > 0.7) color = "#ff4d4d";
+            else if (risk > 0.3) color = "#f59e0b";
+          }
 
-// Auto-refresh every 5 seconds (safe & simple)
-setInterval(loadTopology, 5000);
-</script>
+          return {
+            id: n.id,
+            label: n.id.length > 15 ? n.id.substring(0, 7) + "..." : n.id,
+            shape: shape,
+            color: {
+              background: color,
+              border: "#111"
+            },
+            title: `ID: ${n.id}\nRisk: ${risk.toFixed(2)}\nIP: ${n.ip || 'N/A'}`
+          };
+        });
+
+        const edgeItems = data.edges.map(e => ({
+          from: e.from,
+          to: e.to,
+          arrows: "to"
+        }));
+
+        // Re-populate data sets
+        nodes.clear();
+        edges.clear();
+        nodes.add(nodeItems);
+        edges.add(edgeItems);
+
+      } catch (err) {
+        console.error("Topology load failed", err);
+      }
+    }
+
+    // Set interval for live updates
+    loadTopology();
+    setInterval(loadTopology, 5000);
+  </script>
 
 </body>
+
 </html>

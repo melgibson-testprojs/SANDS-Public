@@ -26,3 +26,6 @@ plotly==6.5.0
 # === Config & Utilities ===
 PyYAML==6.0.3
 aiohttp
+
+# === XAI & LLM ===
+groq==0.18.0

@@ -172,9 +172,11 @@
 
     /* FIXED & SCROLLABLE DEVICES PANEL */
     .devices-scroll {
-      max-height: 420px;     /* adjust if you want */
+      max-height: 420px;
+      /* adjust if you want */
       overflow-y: auto;
-      padding-right: 6px;   /* space for scrollbar */
+      padding-right: 6px;
+      /* space for scrollbar */
     }
 
     /* Optional: nicer scrollbar (Chrome-based browsers) */
@@ -183,7 +185,7 @@
     }
 
     .devices-scroll::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.15);
+      background: rgba(255, 255, 255, 0.15);
       border-radius: 4px;
     }
 
@@ -218,8 +220,10 @@
 ========================= */
     /* LIVE EVENTS FIXED AREA */
     .events {
-      max-height: 160px;          /* fixed height */
-      overflow: hidden;           /* hide overflow */
+      max-height: 160px;
+      /* fixed height */
+      overflow: hidden;
+      /* hide overflow */
       display: flex;
       flex-direction: column;
     }
@@ -241,6 +245,15 @@
 </head>
 
 <body>
+
+  <div style="position: absolute; top: 20px; right: 28px; display: flex; align-items: center; gap: 15px;">
+    <div style="text-align: right;">
+      <div style="font-size: 13px; font-weight: 600;">{{ user }}</div>
+      <div style="font-size: 11px; color: var(--accent-blue); text-transform: uppercase;">{{ role }} Access</div>
+    </div>
+    <a href="/logout" class="action-btn"
+      style="text-decoration: none; padding: 8px 14px; background: rgba(255,107,107,0.1); color: var(--accent-red); border: 1px solid rgba(255,107,107,0.2);">Logout</a>
+  </div>
 
   <h1>🛡️ <span>SANDS SOC Dashboard</span></h1>
 
@@ -274,7 +287,16 @@
       🕸 Agent Topology
     </button>
 
-    <button class="action-btn danger">🚨 Incident View</button>
+    <button class="action-btn primary"
+      style="background: linear-gradient(135deg, rgba(79, 140, 255, 0.2), rgba(168, 85, 247, 0.2)); border: 1px solid rgba(168, 85, 247, 0.3);"
+      onclick="window.location='/dashboard/xai'">
+      🤖 XAI Chat
+    </button>
+    <button class="action-btn danger" onclick="window.location='/dashboard/incidents'">🚨 Incident View</button>
+    <button class="action-btn primary" style="border: 1px solid var(--accent-yellow); color: var(--accent-yellow);"
+      onclick="window.location='/dashboard/debug'">
+      🛠️ Debug Console
+    </button>
   </div>
 
   <!-- 🟨 MAIN LAYOUT -->
@@ -319,7 +341,7 @@
       return hasSuspicious ? "MED" : "LOW";
     }
 
-    
+
     /* -------------------- DEVICE STATE -------------------- */
     async function fetchState() {
       const res = await fetch("/api/state");
@@ -492,7 +514,7 @@
     refreshAll();
     setInterval(refreshAll, 2000);
 
-    
+
   </script>
 
 </body>

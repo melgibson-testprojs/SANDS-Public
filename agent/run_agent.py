@@ -2,7 +2,7 @@
 """
 Entrypoint for the SwarmSec Network Agent.
 
-Run from project root (Phase2.1) as:
+Run from project root (SANDS) as:
     python -m agent.run_agent
 """
 

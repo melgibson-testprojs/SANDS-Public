@@ -1,6 +1,6 @@
 # server/fusion_layer.py        ----- REPLACED WITH FUSIONN ENGINE
 """
-Robust fusion layer for Phase2.1
+Robust fusion layer for SANDS
 
 - Uses XGBoost (if present) and Autoencoder (if present).
 - If either model is missing, falls back gracefully.

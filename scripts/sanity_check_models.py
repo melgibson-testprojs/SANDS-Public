@@ -1,6 +1,6 @@
 # sanity_check_models.py
 """
-Simple sanity checks for model files in Phase2.1/models/.
+Simple sanity checks for model files in SANDS/models/.
 Run: python scripts/sanity_check_models.py
 """
 

@@ -4,6 +4,7 @@ import time
 class DeviceStore:
     def __init__(self):
         self.devices: Dict[str, dict] = {}
+        self.agents: Dict[str, dict] = {} # agent_id -> info
 
     def _make_key(self, mac=None):
         if not mac:
@@ -15,12 +16,16 @@ class DeviceStore:
         key = self._make_key(mac)
         now = time.time()
 
+        if agent_id:
+            self.agents[agent_id] = {"id": agent_id, "last_seen": now, "ip": ip}
+
         if key not in self.devices:
             self.devices[key] = {
                 "key": key,
                 "mac": mac.lower(),
                 "ip": ip,
                 "agent_id": agent_id,
+                "discoverers": [agent_id] if agent_id else [],
                 "status": "online",
                 "approved": False,
                 "last_seen": now,
@@ -34,17 +39,24 @@ class DeviceStore:
                 d["ip"] = ip
             if agent_id:
                 d["agent_id"] = agent_id
+                if "discoverers" not in d:
+                    d["discoverers"] = []
+                if agent_id not in d["discoverers"]:
+                    d["discoverers"].append(agent_id)
 
         return self.devices[key]
 
 
     def heartbeat(self, agent_id: str, ip: str | None = None):
-        key = f"agent:{agent_id}"
-        if key in self.devices:
-            self.devices[key]["last_seen"] = time.time()
-            self.devices[key]["status"] = "online"
-            if ip:
-                self.devices[key]["ip"] = ip
+        now = time.time()
+        self.agents[agent_id] = {"id": agent_id, "last_seen": now, "ip": ip}
+        
+        # Also find any device registered to this agent
+        for d in self.devices.values():
+            discoverers = d.get("discoverers", [])
+            if d.get("agent_id") == agent_id or agent_id in discoverers:
+                d["last_seen"] = now
+                d["status"] = "online"
 
     def all(self):
         now = time.time()

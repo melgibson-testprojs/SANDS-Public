@@ -525,9 +525,6 @@ class NetworkAgent(BaseAgent):
                 SwarmTopics.GLOBAL_ALERTS,
                 vote_msg
             )
-    
-    def clear_votes(self, target_id):
-        self.votes.pop(target_id, None)
 
     def _handle_vote_cast(self, msg: dict):
         if not self.leader.is_leader():

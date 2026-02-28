@@ -14,8 +14,9 @@ if %errorlevel% neq 0 (
 :: ===============================
 :: Config
 :: ===============================
-set PROJECT_DIR=D:\PROJECT_PHASE2\Phase2.1
-set VENV_ACTIVATE=%PROJECT_DIR%\.venv\Scripts\activate.bat
+set "PROJECT_DIR=%~dp0"
+if "%PROJECT_DIR:~-1%"=="\" set "PROJECT_DIR=%PROJECT_DIR:~0,-1%"
+set "VENV_ACTIVATE=%PROJECT_DIR%\.venv\Scripts\activate.bat"
 
 cd /d %PROJECT_DIR%
 

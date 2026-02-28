@@ -1,5 +1,9 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 from dashboard.app.api.portal import router as portal_router
 from dashboard.app.api.dashboard import router as dashboard_router
@@ -11,6 +15,8 @@ from dashboard.app.api.prediction_state import router as prediction_state_router
 from dashboard.app.api.topology import router as topology_router
 from dashboard.app.api import models as models_api
 from dashboard.app.api import devices
+from dashboard.app.api.debug import router as debug_router
+from dashboard.app.api.auth import router as auth_router, get_current_user
 
 
 
@@ -29,6 +35,8 @@ app.include_router(prediction_state_router)
 app.include_router(topology_router)
 app.include_router(models_api.router)
 app.include_router(devices.router)
+app.include_router(debug_router)
+app.include_router(auth_router)
 
 
 app.mount(

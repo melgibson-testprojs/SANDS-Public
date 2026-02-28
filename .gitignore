@@ -13,3 +13,4 @@ models/*
 *.onnx
 *.h5
 models/*.bin
+.env

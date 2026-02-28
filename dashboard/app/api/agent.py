@@ -62,9 +62,12 @@ def bind_device(payload: AgentBind, request: Request):
         "device": device
     }
 
+from dashboard.app.services.auth_service import auth_service
+
 @router.post("/agent/device/{device_key}/{action}")
 def device_action(device_key: str, action: DeviceAction):
-    device = device_store.get(device_key)
+    real_key = auth_service.resolve_id(device_key)
+    device = device_store.get(real_key)
     if not device:
         return {"status": "error", "reason": "device_not_found"}
 
