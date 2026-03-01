@@ -69,7 +69,7 @@ def discover_autoencoders():
         runs = sorted(
             os.listdir(AE_EXPERIMENTS_DIR),
             key=extract_run_number,
-            reverse=True   # newest first
+            reverse=False   # oldest first (ascending)
         )
         
         for run in runs:

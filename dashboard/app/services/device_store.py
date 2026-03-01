@@ -34,7 +34,8 @@ class DeviceStore:
         else:
             d = self.devices[key]
             d["last_seen"] = now
-            d["status"] = "online"
+            if d.get("status") not in ("blocked", "quarantined"):
+                d["status"] = "online"
             if ip:
                 d["ip"] = ip
             if agent_id:
@@ -56,7 +57,8 @@ class DeviceStore:
             discoverers = d.get("discoverers", [])
             if d.get("agent_id") == agent_id or agent_id in discoverers:
                 d["last_seen"] = now
-                d["status"] = "online"
+                if d.get("status") not in ("blocked", "quarantined"):
+                    d["status"] = "online"
 
     def all(self):
         now = time.time()
@@ -65,9 +67,11 @@ class DeviceStore:
             if age > 90:
                 d["status"] = "offline"
             elif age > 30:
-                d["status"] = "stale"
+                if d.get("status") not in ("blocked", "quarantined"):
+                    d["status"] = "stale"
             else:
-                d["status"] = "online"
+                if d.get("status") not in ("blocked", "quarantined"):
+                    d["status"] = "online"
         return list(self.devices.values())
 
     def get(self, key: str):

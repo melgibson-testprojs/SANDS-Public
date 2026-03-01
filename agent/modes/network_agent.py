@@ -504,27 +504,35 @@ class NetworkAgent(BaseAgent):
         if target_type == "device":
             device = self.logical_registry.get_device(target_id)
             if device:
-                if device["risk_engine"].should_block():
+                if device["risk_engine"].should_quarantine():
                     agree = True
 
         elif target_type == "ip":
             if target_id in self.blocked_ips:
                 agree = True
 
-        if agree:
-            vote_msg = {
-                "t": "VOTE_CAST",
-                "target_id": target_id,
-                "target_type": target_type,
-                "voter": self.agent_id,
-                "src": self.agent_id,
-                "ts": time.time()
-            }
+        decision = "BLOCK" if agree else "ABSTAIN"
+        reason = "Local risk threshold reached" if agree else "No local threat detected"
 
-            self.comm_mqtt.publish(
-                SwarmTopics.GLOBAL_ALERTS,
-                vote_msg
-            )
+        self.logger.info(
+            f"VOTE_CAST_SENT | target={target_id} | "
+            f"decision={decision} | "
+            f"reason={reason}"
+        )
+        vote_msg = {
+            "t": "VOTE_CAST",
+            "target_id": target_id,
+            "target_type": target_type,
+            "decision": decision,
+            "voter": self.agent_id,
+            "src": self.agent_id,
+            "ts": time.time()
+        }
+
+        self.comm_mqtt.publish(
+            SwarmTopics.GLOBAL_ALERTS,
+            vote_msg
+        )
 
     def _handle_vote_cast(self, msg: dict):
         if not self.leader.is_leader():
@@ -533,6 +541,7 @@ class NetworkAgent(BaseAgent):
         target_id = msg.get("target_id")
         voter = msg.get("voter")
         target_type = msg.get("target_type")
+        decision = msg.get("decision", "BLOCK")
 
         if not target_id or not voter:
             return
@@ -552,20 +561,26 @@ class NetworkAgent(BaseAgent):
         if vote_session["finalized"]:
             return
 
-        current_votes = self.vote_store.get_vote_count(target_id)
-
-        self.logger.info(
-            f"VOTE_CAST_RECEIVED | voter={voter} | "
-            f"target={target_id} | "
-            f"votes={current_votes + 1}/{total_agents} | "
-            f"quorum={quorum}"
-        )
-
         reached = self.vote_store.add_vote(
             target_id,
             voter,
             total_agents=total_agents,
-            target_type=target_type
+            target_type=target_type,
+            decision=decision
+        )
+
+        breakdown = self.vote_store.get_vote_breakdown(target_id)
+        blocks = breakdown.get("BLOCK", 0)
+        abstains = breakdown.get("ABSTAIN", 0)
+
+        self.logger.info(
+            f"VOTE_CAST_RECEIVED | voter={voter} | "
+            f"target={target_id} | "
+            f"decision={decision} | "
+            f"votes_block={blocks} | "
+            f"votes_abstain={abstains} | "
+            f"total_agents={total_agents} | "
+            f"quorum={quorum}"
         )
 
         if reached:
@@ -774,31 +789,43 @@ class NetworkAgent(BaseAgent):
                 if flow and flow["dst_ip"] in self.blocked_ips:
                     continue
 
-                device_id = self.logical_registry.resolve_device(flow["src_ip"])
+                src_device_id = self.logical_registry.resolve_device(flow["src_ip"])
+                dst_device_id = self.logical_registry.resolve_device(flow["dst_ip"])
 
-                if not device_id:
-                    if flow["src_ip"] not in self._warned_unknown_ips:
-                        self.logger.warning(
-                            f"FLOW FROM UNKNOWN DEVICE | src_ip={flow['src_ip']}"
-                        )
-                        self._warned_unknown_ips.add(flow["src_ip"])
-                    continue
+                approved_device_id = None
                 
+                if src_device_id and self.logical_registry.get_state(src_device_id) == DeviceState.APPROVED:
+                    approved_device_id = src_device_id
+                elif dst_device_id and self.logical_registry.get_state(dst_device_id) == DeviceState.APPROVED:
+                    approved_device_id = dst_device_id
+
+                if not approved_device_id:
+                    dv_id = src_device_id or dst_device_id
+                    if not dv_id:
+                        if flow["src_ip"] not in self._warned_unknown_ips:
+                            self.logger.warning(
+                                f"FLOW FROM UNKNOWN DEVICE | src_ip={flow['src_ip']} dst_ip={flow['dst_ip']}"
+                            )
+                            self._warned_unknown_ips.add(flow["src_ip"])
+                        continue
+                    
+                    state = self.logical_registry.get_state(dv_id)
+                    if state == DeviceState.BLOCKED:
+                        continue
+                    
+                    if state != DeviceState.APPROVED:
+                        if dv_id not in self._warned_blocked_devices:
+                            self.logger.info(
+                                f"FLOW DROPPED | "
+                                f"device_id={dv_id} | "
+                                f"state={state.value}"
+                            )
+                            self._warned_blocked_devices.add(dv_id)
+                        continue
+
+                device_id = approved_device_id
                 state = self.logical_registry.get_state(device_id)
                 device = self.logical_registry.get_device(device_id)
-                
-                if state == DeviceState.BLOCKED:
-                    continue
-
-                if state != DeviceState.APPROVED:
-                    if device_id not in self._warned_blocked_devices:
-                        self.logger.info(
-                            f"FLOW DROPPED | "
-                            f"device_id={device_id} | "
-                            f"state={state.value}"
-                        )
-                        self._warned_blocked_devices.add(device_id)
-                    continue
 
                 self.logger.info(
                     f"FLOW ACCEPTED | device_id={device_id} | ip={flow['src_ip']}"
@@ -827,13 +854,13 @@ class NetworkAgent(BaseAgent):
                 if self.state == AgentState.REGISTERED:
                     resp = self.send_telemetry(payload)
 
-                    #result = resp.get("prediction", {}) if resp else {}
+                    result = resp.get("prediction", {}) if resp else {}
                     
                     #To test Risk
-                    result = {
-                        "final_decision": "SUSPICIOUS",
-                        "reconstruction_error": 299.0
-                    }
+                    # result = {
+                    #     "final_decision": "SUSPICIOUS",
+                    #     "reconstruction_error": 599.0
+                    # }
 
 
                     # 🔑 normalize ML decision (THIS IS THE FIX)

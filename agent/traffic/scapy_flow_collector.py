@@ -42,24 +42,27 @@ class ScapyFlowCollector:
         else:
             return None
 
-        a = (ip.src, l4.sport)
-        b = (ip.dst, l4.dport)
-
-        if a <= b:
-            return (a[0], b[0], a[1], b[1], proto)
-        else:
-            return (b[0], a[0], b[1], a[1], proto)
+        return (ip.src, ip.dst, l4.sport, l4.dport, proto)
 
 
     def _on_packet(self, pkt):
-        key = self._flow_key(pkt)
-        if not key:
+        forward_key = self._flow_key(pkt)
+        if not forward_key:
             return
 
+        reverse_key = (forward_key[1], forward_key[0], forward_key[3], forward_key[2], forward_key[4])
         now = time.time()
 
         with self.lock:
-            if key not in self.flows:
+            if forward_key in self.flows:
+                key = forward_key
+                direction = "src_to_dst"
+            elif reverse_key in self.flows:
+                key = reverse_key
+                direction = "dst_to_src"
+            else:
+                key = forward_key
+                direction = "src_to_dst"
                 self.flows[key] = {
                     "src_ip": key[0],
                     "dst_ip": key[1],
@@ -84,11 +87,6 @@ class ScapyFlowCollector:
             flow = self.flows[key]
             flow["end_ts"] = now
             flow["last_seen"] = now
-
-            if pkt[IP].src == flow["src_ip"]:
-                direction = "src_to_dst"
-            else:
-                direction = "dst_to_src"
 
             length = len(pkt)
             flags = pkt[TCP].flags.flagrepr() if TCP in pkt else ""
@@ -120,12 +118,13 @@ class ScapyFlowCollector:
                     expired.append(key)
             
             for key in expired:
-                self.ready_flows.append(self.flows.pop(key))
+                flow_data = self.flows.pop(key)
+                self.ready_flows.append(flow_data)
                 print(
                     f"[ScapyFlowCollector] FINALIZE FLOW "
-                    f"{flow['src_ip']}:{flow['src_port']} → "
-                    f"{flow['dst_ip']}:{flow['dst_port']} | "
-                    f"pkts={len(flow['packets'])}"
+                    f"{flow_data['src_ip']}:{flow_data['src_port']} → "
+                    f"{flow_data['dst_ip']}:{flow_data['dst_port']} | "
+                    f"pkts={len(flow_data['packets'])}"
                 )
 
 

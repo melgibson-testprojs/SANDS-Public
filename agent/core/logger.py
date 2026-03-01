@@ -8,7 +8,6 @@ os.makedirs(LOG_DIR, exist_ok=True)
 
 AGENT_LOG_PATH = os.path.join(LOG_DIR, "swarmsec_agent.log")
 
-
 # ---------------------------------------------------
 # REQUIRED AGENT LOGGER
 # ---------------------------------------------------

@@ -29,7 +29,7 @@ class MQTTService:
         return False
 
     def trigger_swarm_alert(self, device_id, code, score, src="debug_page"):
-        topic = f"swarmsec/alerts/logical/{device_id}"
+        topic = f"swarm/logical/{device_id}/alerts"
         payload = {
             "t": "WARN",
             "c": code,
@@ -41,7 +41,7 @@ class MQTTService:
         return self.publish(topic, payload)
 
     def trigger_vote_request(self, target_id, target_type="device", src="debug_page"):
-        topic = "swarmsec/alerts/global"
+        topic = "swarm/global/alerts"
         payload = {
             "t": "VOTE_REQ",
             "target_id": target_id,
@@ -52,7 +52,7 @@ class MQTTService:
         return self.publish(topic, payload)
 
     def trigger_consensus(self, target_id, target_type="device", action="BLOCK", src="debug_page"):
-        topic = "swarmsec/alerts/global"
+        topic = "swarm/global/alerts"
         payload = {
             "t": "CONSENSUS",
             "target_id": target_id,

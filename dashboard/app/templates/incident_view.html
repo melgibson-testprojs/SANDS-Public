@@ -745,11 +745,25 @@
 
                 let progress = 0;
                 let voteStr = '0/0';
+                let voteDetails = '';
                 if (castVotes.length > 0) {
-                    const vMatch = castVotes[0].metadata.votes?.split('/');
-                    if (vMatch && vMatch.length === 2) {
-                        progress = (parseInt(vMatch[0]) / parseInt(vMatch[1])) * 100;
-                        voteStr = castVotes[0].metadata.votes;
+                    const meta = castVotes[0].metadata;
+                    if (meta.votes_block !== undefined && meta.total_agents !== undefined) {
+                        const blocks = parseInt(meta.votes_block) || 0;
+                        const abstains = parseInt(meta.votes_abstain) || 0;
+                        const total = parseInt(meta.total_agents) || 1;
+                        const castTotal = blocks + abstains;
+
+                        progress = (castTotal / total) * 100;
+                        voteStr = `${castTotal}/${total}`;
+                        voteDetails = `<span style="color: var(--accent-red)">${blocks} Block</span> / <span style="color: var(--text-muted)">${abstains} Abstain</span>`;
+                    } else if (meta.votes) {
+                        const vMatch = meta.votes.split('/');
+                        if (vMatch.length === 2) {
+                            progress = (parseInt(vMatch[0]) / parseInt(vMatch[1])) * 100;
+                            voteStr = meta.votes;
+                            voteDetails = `<span style="color: var(--accent-red)">${vMatch[0]} Block</span>`;
+                        }
                     }
                 }
 
@@ -773,7 +787,7 @@
                         <div class="vote-progress-bar" style="width: ${progress}%"></div>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); margin-bottom: 12px;">
-                        <span>Quorum Participation</span>
+                        <span>Quorum Participation (${voteDetails || '0 Block'})</span>
                         <span>${voteStr} Votes</span>
                     </div>
 

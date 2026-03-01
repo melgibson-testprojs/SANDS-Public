@@ -32,7 +32,18 @@ async def trigger_debug_action(trigger: DebugTrigger):
             source="debug_mock",
             extra={"manual_trigger": True}
         )
-        return {"status": "ok", "message": f"Injected {decision} prediction for {device_key}"}
+
+        lid = device_key
+        if device_key.startswith("mac:"):
+            mac = device_key[4:]
+            import hashlib
+            lid = hashlib.sha256(mac.encode()).hexdigest()[:16]
+
+        code = "MAL_CONFIRMED" if decision == "ATTACK" else "ANOM_BEHAV"
+        swarm_score = 50.0 if decision == "ATTACK" else 10.0
+        mqtt_service.trigger_swarm_alert(lid, code, swarm_score, src="debug_mock_ml")
+        
+        return {"status": "ok", "message": f"Injected {decision} prediction for {device_key} (lid:{lid}) and notified swarm"}
 
     elif action == "swarm_alert":
         if not target_id:
@@ -40,8 +51,14 @@ async def trigger_debug_action(trigger: DebugTrigger):
         
         code = trigger.payload.get("code", "ANOM_BEHAV")
         score = float(trigger.payload.get("score", 10.0))
+
+        lid = target_id
+        if target_id.startswith("mac:"):
+            mac = target_id[4:]
+            import hashlib
+            lid = hashlib.sha256(mac.encode()).hexdigest()[:16]
         
-        success = mqtt_service.trigger_swarm_alert(target_id, code, score)
+        success = mqtt_service.trigger_swarm_alert(lid, code, score)
         return {"status": "ok" if success else "error", "message": "Published swarm alert"}
 
     elif action == "vote_request":

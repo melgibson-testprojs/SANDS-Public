@@ -24,8 +24,15 @@ def update_device_state(payload: dict):
 
     # update state
     if "state" in payload:
-        device["status"] = payload["state"]
-        device["approved"] = payload["state"] == "approved"
+        new_state = payload["state"]
+        if new_state in ("blocked", "quarantined"):
+            device["status"] = new_state
+            device["approved"] = False
+        elif new_state == "approved":
+            # Only allow setting back to approved if NOT already blocked by someone else
+            if device.get("status") not in ("blocked", "quarantined"):
+                device["status"] = "approved"
+                device["approved"] = True
 
     # 🔥 THIS IS WHAT FIXES SOC RISK
     if "risk" in payload:

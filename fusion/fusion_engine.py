@@ -14,7 +14,7 @@ from project_settings import (
 # CONFIG
 # ============================================================
 
-AE_THRESHOLD = 0.32
+AE_THRESHOLD = 1.75 #fake for synthetic 32 else 1.75
 BASE_AE_PATH = os.path.join("models", "autoencoder_cicids2018.h5")
 AE_EXPERIMENTS_DIR = os.path.join("models", "experiments", "ae")
 
@@ -31,7 +31,7 @@ def get_xgb_model():
 def get_autoencoder(version: str):
     if version == "base":
         model = load_keras_safe("autoencoder_cicids2018.h5")
-        threshold = 0.32 #fake
+        threshold = 1.75 #fake for synthetic 32 else 1.75
         return model, threshold
 
     # incremental runs
@@ -49,7 +49,7 @@ def get_autoencoder(version: str):
     if model is None:
         raise RuntimeError(f"Failed to load autoencoder: {relative_path}")
 
-    threshold = 0.32
+    threshold = 1.75 #fake for synthetic 32 else 1.75
     if os.path.exists(metrics_path):
         with open(metrics_path, "r") as f:
             metrics = json.load(f)
