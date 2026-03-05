@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-BASE_MODEL = Path("models/autoencoder_cicids2018.h5")
+BASE_MODEL = Path("models/scapy_autoencoder.h5")
 BACKUP_DIR = Path("models/backups")
 
 

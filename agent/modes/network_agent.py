@@ -105,8 +105,8 @@ class NetworkAgent(BaseAgent):
 
         src_bytes = 0
         dst_bytes = 0
-        src_cnt = 200
-        dst_cnt = 1
+        src_cnt = 0
+        dst_cnt = 0
 
         for i in range(8):
             ts = now + i * 0.01

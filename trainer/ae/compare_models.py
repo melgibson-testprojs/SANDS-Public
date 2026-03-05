@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from trainer.utils.data_loader import load_logged_flows
 
-BASE_MODEL = "models/autoencoder_cicids2018.h5"
+BASE_MODEL = "models/scapy_autoencoder.h5"
 
 def mean_reconstruction_error(model_path, X_eval):
     ae = tf.keras.models.load_model(model_path, compile=False)

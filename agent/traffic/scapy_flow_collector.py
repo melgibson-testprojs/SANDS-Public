@@ -2,8 +2,8 @@ from scapy.all import sniff, IP, TCP, UDP
 import time
 import threading
 
-FLOW_TIMEOUT = 10.0  # seconds
-MAX_FLOW_DURATION = 60.0  # seconds (recommended)
+FLOW_TIMEOUT = 5.0  # reduced from 10.0
+MAX_FLOW_DURATION = 30.0  # reduced from 60.0
 
 class ScapyFlowCollector:
     def __init__(self, iface=None):
@@ -138,7 +138,7 @@ class ScapyFlowCollector:
             flow = self.ready_flows.pop(0)
 
         # 🔍 minimum packet sanity
-        if len(flow["packets"]) < 2:
+        if len(flow["packets"]) < 1:
             return None
 
         return flow

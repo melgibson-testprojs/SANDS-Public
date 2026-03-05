@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 LOG_FILE = Path("models/logs/ae_training.jsonl")
-EXPECTED_FEATURES = 77
+EXPECTED_FEATURES = 21
 
 
 def load_logged_flows():

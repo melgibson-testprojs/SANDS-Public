@@ -10,6 +10,6 @@ class AgentConfig:
     mqtt_port: int = int(os.environ.get("MQTT_PORT", 1883))
     polling_interval: float = float(os.environ.get("POLL_INTERVAL", 2.0))
     token: str = os.environ.get("AGENT_TOKEN", "")
-    capture_iface = "RZ616 Wi-Fi 6E 160MHz"   # eth0 or wlan0
+    capture_iface = "RZ616 Wi-Fi 6E 160MHz" # "Ethernet 3" eth0 or wlan0
 
 config = AgentConfig()

@@ -11,11 +11,11 @@ import numpy as np
 # CONFIG
 # --------------------------------------------------
 
-BASE_MODEL = "models/autoencoder_cicids2018.h5"
+BASE_MODEL = "models/scapy_autoencoder.h5"
 EXPERIMENTS_DIR = Path("models/experiments/ae")
 STATE_FILE = EXPERIMENTS_DIR / "training_state.json"
 
-EXPECTED_FEATURES = 77
+EXPECTED_FEATURES = 21
 MIN_SAFE_SAMPLES = 10
 
 
@@ -167,7 +167,7 @@ def train_incremental():
         history = ae.fit(
             X_train,
             X_train,
-            epochs=3,
+            epochs=5,
             batch_size=min(256, len(X_train)),
             shuffle=True,
             verbose=1,

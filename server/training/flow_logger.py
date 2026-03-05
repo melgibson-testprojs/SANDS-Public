@@ -27,7 +27,7 @@ def log_flow_for_training(
             "agent_id": agent_id,
             "logical_agent_id": logical_agent_id,
 
-            # 78 scaled features
+            # 21 scaled features
             "features": features.astype(float).tolist(),
 
             # prediction context

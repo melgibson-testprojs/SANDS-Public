@@ -14,8 +14,8 @@ from project_settings import (
 # CONFIG
 # ============================================================
 
-AE_THRESHOLD = 1.75 #fake for synthetic 32 else 1.75
-BASE_AE_PATH = os.path.join("models", "autoencoder_cicids2018.h5")
+AE_THRESHOLD = 0.07
+BASE_AE_PATH = os.path.join("models", "scapy_autoencoder.h5")
 AE_EXPERIMENTS_DIR = os.path.join("models", "experiments", "ae")
 
 # ============================================================
@@ -24,14 +24,14 @@ AE_EXPERIMENTS_DIR = os.path.join("models", "experiments", "ae")
 
 @lru_cache()
 def get_xgb_model():
-    return load_joblib_safe("xgb_model.pkl")
+    return load_joblib_safe("scapy_xgb_model.pkl")
 
 
 @lru_cache(maxsize=16)
 def get_autoencoder(version: str):
     if version == "base":
-        model = load_keras_safe("autoencoder_cicids2018.h5")
-        threshold = 1.75 #fake for synthetic 32 else 1.75
+        model = load_keras_safe("scapy_autoencoder.h5")
+        threshold = AE_THRESHOLD
         return model, threshold
 
     # incremental runs
@@ -49,7 +49,7 @@ def get_autoencoder(version: str):
     if model is None:
         raise RuntimeError(f"Failed to load autoencoder: {relative_path}")
 
-    threshold = 1.75 #fake for synthetic 32 else 1.75
+    threshold = AE_THRESHOLD
     if os.path.exists(metrics_path):
         with open(metrics_path, "r") as f:
             metrics = json.load(f)
@@ -76,12 +76,18 @@ def _ae_flag(mse: float) -> str:
     return "ANOMALY" if mse > AE_THRESHOLD else "NORMAL"
 
 
-def _fusion_decision(label: str, ae_flag: str) -> str:
-    if label == "BENIGN" and ae_flag == "NORMAL":
-        return "BENIGN"
-    if label == "BENIGN" and ae_flag == "ANOMALY":
-        return "SUSPICIOUS"
-    return "ATTACK"
+def _fusion_decision(label: str, mse: float, threshold: float) -> str:
+    if label == "ATTACK":
+        return "ATTACK"
+    
+    # 🧠 Weighted AE influence
+    if mse > (threshold * 3):
+        return "ATTACK"  # Extreme anomaly
+    
+    if mse > threshold:
+        return "SUSPICIOUS"  # Mild anomaly
+    
+    return "BENIGN"
 
 # ============================================================
 # MAIN FUSION ENGINE
@@ -114,7 +120,7 @@ class FusionEngine:
         mse = float(np.mean((X - X_reconstructed) ** 2))
         ae_flag = "ANOMALY" if mse > threshold else "NORMAL"
 
-        final_decision = _fusion_decision(label, ae_flag)
+        final_decision = _fusion_decision(label, mse, threshold)
 
         return {
             "supervised_pred": label,
@@ -140,7 +146,7 @@ class FusionEngine:
         for i in range(len(X)):
             label = _supervised_label(int(xgb_raw[i]))
             ae_flag = "ANOMALY" if mse_arr[i] > threshold else "NORMAL"
-            final = _fusion_decision(label, ae_flag)
+            final = _fusion_decision(label, mse_arr[i], threshold)
 
             results.append({
                 "supervised_pred": label,

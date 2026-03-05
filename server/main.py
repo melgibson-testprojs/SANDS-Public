@@ -31,7 +31,7 @@ server_logger = get_server_logger()  # everything else
 # LOAD SCALER
 # ---------------------------------------------------
 
-SCALER_PATH = os.path.join("models", "scaler.pkl")
+SCALER_PATH = os.path.join("models", "scapy_scaler.pkl")
 
 if not os.path.exists(SCALER_PATH):
     raise RuntimeError(f"Scaler not found at {SCALER_PATH}")
@@ -44,7 +44,7 @@ EXPECTED_FEATURE_COUNT = len(FEATURE_NAMES)
 # AUTOENCODER MODEL DISCOVERY + ROTATION
 # ---------------------------------------------------
 
-BASE_AE_PATH = os.path.join("models", "autoencoder_cicids2018.h5")
+BASE_AE_PATH = os.path.join("models", "scapy_autoencoder.h5")
 AE_EXPERIMENTS_DIR = os.path.join("models", "experiments", "ae")
 
 MODEL_ASSIGNMENTS: Dict[str, str] = {}
