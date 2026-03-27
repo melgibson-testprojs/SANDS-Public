@@ -33,5 +33,4 @@ def emit_prediction_event(
             timeout=TIMEOUT
         )
     except Exception as e:
-        # IMPORTANT: never break ML because dashboard is down
         log.debug(f"Prediction emit failed: {e}")

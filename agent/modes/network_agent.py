@@ -15,6 +15,7 @@ from agent.utils.cic_feature_extractor import extract_cic_features
 from agent.discovery.dhcp_sniffer import DHCPDeviceSniffer
 from agent.discovery.arp_monitor import ARPMonitor
 from agent.discovery.events import DeviceDiscoveredEvent
+
 from agent.comm.swarm_protocol import (
     SwarmTopics,
     SwarmMsgType,
@@ -28,7 +29,6 @@ from risk.rules import decide_action
 from agent.comm.leader import LeaderElection
 from agent.comm.consensus import VoteStore
 from agent.comm.swarm_protocol import SwarmMsgType
-import time
 
 
 logger = get_logger("network_agent")
