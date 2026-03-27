@@ -13,3 +13,14 @@ models/*
 *.onnx
 *.h5
 models/*.bin
+logs/
+*.log
+*.jsonl
+models/*.h5
+models/*.pkl
+models/backups/
+models/experiments/
+models/logs/
+__pycache__/
+*.pyc
+.env
