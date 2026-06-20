@@ -1,0 +1,1 @@
+2026-01-11 11:57:27,730 | INFO | AGENT=agent-local-001 | LID=c21fxxxxxxxx00 | MAC=xx:xx:xx:xx:xx:xx | SRC=1x.xx.xxx.xx:xxxx | DST=192.xx.x.xx:xx | PROTO=TCP | DECISION=BENIGN | SUPERVISED=BENIGN | AE_FLAG=NORMAL | RECON_ERR=11.69496847066125
