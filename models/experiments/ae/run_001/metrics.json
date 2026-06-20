@@ -1,0 +1,11 @@
+{
+  "model": "autoencoder",
+  "base_model": "scapy_autoencoder.h5",
+  "samples_used": 474,
+  "epochs": 5,
+  "loss_start": 2.147756338119507,
+  "loss_end": 1.6429634094238281,
+  "loss_delta": -0.5047929286956787,
+  "percentile": 85,
+  "trained_at": 1777704413.3750129
+}
